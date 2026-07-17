@@ -1,0 +1,32 @@
+{
+  "name": "@fntune/native-host",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Bun native-messaging host for fn-browser: bridges the MV3 extension to a local MCP HTTP server on 127.0.0.1:7722",
+  "type": "module",
+  "bin": {
+    "fn-native-host": "./bin/host",
+    "fn-browserd": "./bin/fn-browserd"
+  },
+  "scripts": {
+    "build": "bun build --compile src/main.ts --outfile=bin/host && chmod +x bin/host && bun build --compile src/fnbrowserd.ts --outfile=bin/fn-browserd && chmod +x bin/fn-browserd",
+    "dev": "bun --watch run src/main.ts",
+    "dev:daemon": "bun --watch run src/fnbrowserd.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint .",
+    "test": "node ./node_modules/vitest/vitest.mjs run",
+    "install-host": "bash install/install.sh",
+    "clean": "rm -rf bin dist"
+  },
+  "dependencies": {
+    "@fntune/browser": "workspace:*",
+    "@fntune/log": "workspace:*",
+    "@fntune/utils": "workspace:*",
+    "hono": "^4.12.18"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.0",
+    "typescript": "^5.4.0",
+    "vitest": "^3.2.4"
+  }
+}

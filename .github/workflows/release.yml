@@ -1,0 +1,92 @@
+name: Release
+
+# Builds the fn-browser distribution bundle (unpacked extension + compiled
+# native-host binaries + installer + SETUP.md) on a macOS arm64 runner and
+# attaches it to a GitHub Release with SHA256 checksums.
+#
+# Trust model: the artifact is produced by this workflow from the tagged
+# source, not from a developer laptop. The release notes link the exact run;
+# anyone with repo access can read the source that produced the binaries and
+# verify the checksums.
+#
+# Trigger: push a tag `v<version>` where <version> matches the extension
+# manifest version (apps/chrome-extension/package.json), e.g.
+#   git tag v0.2.0 && git push origin v0.2.0
+# workflow_dispatch builds the bundle and uploads it as a run artifact
+# without creating a Release (dry run).
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bundle:
+    # macos-14 = arm64. The bundle script refuses non-Darwin, and the zip is
+    # labeled darwin-arm64 — keep runner and label in lockstep.
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.8"
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build bundle
+        run: ./scripts/release/bundle-browser.sh
+
+      - name: Verify tag matches bundle version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          EXPECTED="release/fn-browser-$TAG_VERSION-darwin-arm64.zip"
+          if [[ ! -f "$EXPECTED" ]]; then
+            echo "error: tag says $TAG_VERSION but the bundle script produced:" >&2
+            ls release/*.zip >&2
+            echo "bump apps/chrome-extension version (manifest is the source of truth) or fix the tag" >&2
+            exit 1
+          fi
+
+      - name: Checksums
+        run: cd release && shasum -a 256 *.zip > SHA256SUMS
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          cat > /tmp/release-notes.md <<EOF
+          fn-browser distribution bundle for macOS (arm64): unpacked Chrome
+          extension, compiled native-host binaries, installer, and SETUP.md.
+
+          **Install**: download the zip, unzip somewhere permanent, follow
+          \`SETUP.md\` inside.
+
+          **Verify** (optional): the asset was built by [this workflow run]($RUN_URL)
+          from tag \`$GITHUB_REF_NAME\` — not on a laptop. Check integrity with:
+
+              shasum -c SHA256SUMS --ignore-missing
+          EOF
+          gh release create "$GITHUB_REF_NAME" release/*.zip release/SHA256SUMS \
+            --title "fn-browser $GITHUB_REF_NAME" \
+            --notes-file /tmp/release-notes.md
+
+      - name: Upload run artifact (dry run)
+        if: "!startsWith(github.ref, 'refs/tags/')"
+        uses: actions/upload-artifact@v4
+        with:
+          name: fn-browser-bundle
+          path: |
+            release/*.zip
+            release/SHA256SUMS
+          retention-days: 14
