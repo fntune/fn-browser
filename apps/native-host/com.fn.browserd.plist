@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  fn-browserd launchd template. The install script substitutes __HOST_DIR__
+  (its own directory) and __HOME__ before copying this file into
+  ~/Library/LaunchAgents, so the same template works from a repo checkout or an
+  extracted release bundle.
+
+  Install:
+    1. Build the binary first (repo checkout only; bundles ship it prebuilt):
+         bun run --cwd apps/native-host build
+    2. Install the launchd agent:
+         ./install-launchd.sh
+
+  Secrets:
+    Put secrets in ~/.fn-browser/env, not in this plist:
+      FN_BROWSER_EXTENSION_TOKEN=shared-secret-with-extension
+      FN_BROWSER_AUTH_TOKENS=clientname:token:act
+    Then lock the file down:
+      chmod 600 ~/.fn-browser/env
+    The plist itself should NOT contain secrets; files in
+    ~/Library/LaunchAgents are world-readable.
+
+  Load/unload:
+    launchctl unload ~/Library/LaunchAgents/com.fn.browserd.plist
+    launchctl load ~/Library/LaunchAgents/com.fn.browserd.plist
+
+  Auth:
+    If FN_BROWSER_AUTH_TOKENS is set in ~/.fn-browser/env, every HTTP request to
+    fn-browserd must include Authorization: Bearer TOKEN.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.fn.browserd</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>__HOST_DIR__/fn-browserd-launch.sh</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>FN_BROWSER_BIND</key>
+    <string>127.0.0.1</string>
+    <key>FN_BROWSER_PORT</key>
+    <string>7722</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>ThrottleInterval</key>
+  <integer>5</integer>
+
+  <key>StandardOutPath</key>
+  <string>__HOME__/.fn-browser/daemon.out.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>__HOME__/.fn-browser/daemon.err.log</string>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+
+  <key>AbandonProcessGroup</key>
+  <true/>
+</dict>
+</plist>

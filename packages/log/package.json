@@ -1,0 +1,47 @@
+{
+  "name": "@fntune/log",
+  "version": "0.1.0",
+  "description": "Structured JSON logger with OpenTelemetry support",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.map"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint .",
+    "test": "node ./node_modules/vitest/vitest.mjs run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@fntune/utils": "workspace:*"
+  },
+  "peerDependencies": {
+    "@opentelemetry/api": "^1.7.0"
+  },
+  "peerDependenciesMeta": {
+    "@opentelemetry/api": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@opentelemetry/api": "^1.7.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^3.2.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

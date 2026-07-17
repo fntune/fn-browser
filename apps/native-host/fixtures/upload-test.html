@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>fn-browser upload smoke test</title>
+    <style>
+      body { font: 14px system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; }
+      label { display: block; margin: 12px 0 4px; font-weight: 600; }
+      input[type=file] { display: block; padding: 8px; border: 1px dashed #aaa; border-radius: 4px; width: 100%; }
+      .result { background: #f4f4f5; padding: 12px; border-radius: 4px; margin-top: 16px; }
+      .ok { color: #059669; }
+      .pending { color: #a16207; }
+    </style>
+  </head>
+  <body>
+    <h1>fn-browser upload smoke test</h1>
+    <p>
+      Call <code>mcp__fn-browser__upload_file</code> with
+      <code>selector: "input#resume"</code> and the absolute path of a file.
+      If the upload worked, the filename appears below and a trusted
+      <code>change</code> event fires.
+    </p>
+
+    <label for="resume">Resume file:</label>
+    <input id="resume" type="file" accept=".pdf,.doc,.docx,.txt" />
+
+    <div id="result" class="result pending">No file selected yet.</div>
+
+    <script>
+      const input = document.getElementById("resume");
+      const result = document.getElementById("result");
+      input.addEventListener("change", (e) => {
+        const f = e.target.files?.[0];
+        if (!f) {
+          result.className = "result pending";
+          result.textContent = "change event fired, but files is empty";
+          return;
+        }
+        result.className = "result ok";
+        result.textContent = `OK: ${f.name} (${f.size} bytes, ${f.type || "unknown mime"}) — isTrusted=${e.isTrusted}`;
+      });
+    </script>
+  </body>
+</html>

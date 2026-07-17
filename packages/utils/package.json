@@ -1,0 +1,27 @@
+{
+  "name": "@fntune/utils",
+  "version": "0.1.0",
+  "description": "Shared helpers for fn-browser — host-classification (SSRF origin policy)",
+  "type": "module",
+  "exports": {
+    "./host-classification": {
+      "import": "./dist/host-classification.js",
+      "types": "./dist/host-classification.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.map"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint .",
+    "test": "echo 'covered by packages/browser origin-policy tests'",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0"
+  }
+}

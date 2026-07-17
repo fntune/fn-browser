@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "fn-browser",
+  "short_name": "fn",
+  "version": "0.2.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0VAjimsFfdDSQ0yW1SFUXVOxsMal53O4K4f0+7RghFDdGQ3cLvdXGj4bIXqP6zg2I7JeSPiBm8dItTgZ/GjuQnm3gPJP6b1TmS0fPlBatZdbxO1dW0doGmEUPotfzNtFBvvtA8ADE3QoPHJtHXLDvNbtLjoU1wpRpbsL3Q8aXe7tER1q/COIIHHr3xx7HilMUprC/SeDrE7l2qs9DI9/MMzuClxHKXxyYvM8e+VLk3WZLwu69MezBMv8+ZULxQ4VEzOR6sbJqDbltpVz275RjE5knX3N9HeQ7MScpnxvgpCbeaeks1dhT95qXLrZsIvp0sWPUgP8UZemqlnqsqvY/QIDAQAB",
+  "description": "fn browser automation: CDP via chrome.debugger, bridged to a local MCP server over native messaging.",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "debugger",
+    "sidePanel",
+    "nativeMessaging",
+    "storage",
+    "activeTab",
+    "tabs",
+    "tabGroups",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "storage": {
+    "managed_schema": "managed-schema.json"
+  },
+  "background": {
+    "service_worker": "background/index.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "fn-browser"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "content/stop-overlay.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ],
+      "use_dynamic_url": true
+    }
+  ]
+}

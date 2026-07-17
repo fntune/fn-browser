@@ -1,0 +1,43 @@
+{
+  "name": "@fntune/chrome-extension",
+  "version": "0.2.0",
+  "private": true,
+  "description": "fn-browser MV3 Chrome extension: owns chrome.debugger, bridges to native host",
+  "type": "module",
+  "scripts": {
+    "build": "rm -rf dist && bun run build:css && tsup",
+    "build:css": "tailwindcss -i src/sidepanel/globals.css -o dist/globals.css --minify",
+    "dev": "rm -rf dist && bun run build:css && (tailwindcss -i src/sidepanel/globals.css -o dist/globals.css --watch & tsup --watch)",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint .",
+    "test": "node ./node_modules/vitest/vitest.mjs run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@fntune/browser": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.5.4",
+    "lucide-react": "^0.460.0",
+    "motion": "^11.13.0",
+    "@radix-ui/react-dialog": "^1.1.2",
+    "@radix-ui/react-select": "^2.1.2",
+    "@radix-ui/react-separator": "^1.1.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-tooltip": "^1.1.4",
+    "@radix-ui/react-scroll-area": "^1.2.1",
+    "@tanstack/react-query": "^5.59.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/cli": "^4.0.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.4"
+  }
+}

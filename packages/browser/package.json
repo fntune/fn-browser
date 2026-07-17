@@ -1,0 +1,50 @@
+{
+  "name": "@fntune/browser",
+  "version": "0.2.0",
+  "description": "Browser automation primitives and MCP server for Chrome via chrome.debugger",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./cdp": {
+      "import": "./dist/cdp/index.js",
+      "types": "./dist/cdp/index.d.ts"
+    },
+    "./mcp": {
+      "import": "./dist/mcp/index.js",
+      "types": "./dist/mcp/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.map"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint .",
+    "check:stealth": "bash scripts/check-stealth.sh",
+    "test": "bash scripts/check-stealth.sh && node ./node_modules/vitest/vitest.mjs run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@fntune/utils": "workspace:*",
+    "hono": "^4.12.18"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^3.2.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

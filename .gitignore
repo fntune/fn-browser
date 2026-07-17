@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+*.tsbuildinfo
+apps/native-host/bin/
+*.bun-build
+
+# Release bundles
+/release/
+
+# Logs
+*.log
+
+# Environment
+.env
+.env*.local
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Testing
+coverage/
