@@ -18,10 +18,10 @@ import type { ToolResult } from "@fntune/browser/mcp";
 
 const noopAudit = { append: async () => {} } as unknown as AuditLog;
 
-function bridgeReplying(reply: () => ToolResult): ExtensionBridge {
+function bridgeReplying(reply: (method: string) => ToolResult): ExtensionBridge {
   const bridge = new ExtensionBridge(new NativeMessagingBridge(new PassThrough(), new PassThrough()));
   Object.defineProperty(bridge, "isConnected", { get: () => true });
-  Object.assign(bridge, { async sendCommand() { return reply(); } });
+  Object.assign(bridge, { async sendCommand(method: string) { return reply(method); } });
   return bridge;
 }
 
@@ -105,6 +105,58 @@ describe("ConsentRegistry", () => {
     // The approving operator is recorded for the audit trail.
     const resolved = events.find((e) => e.topic === "consent.resolved");
     expect((resolved?.payload as { approvedBy?: string }).approvedBy).toBe("operator-alice");
+  });
+
+  it("approves a trusted-origin consent without prompting, and audits it", async () => {
+    const entries: AuditEntry[] = [];
+    const audit = { append: async (e: AuditEntry) => void entries.push(e) } as unknown as AuditLog;
+    const registry = new ConsentRegistry(new EventBus(), audit);
+    let forwarded = false;
+    const res = await registry.request(
+      { title: "Click", body: "b", tabId: 7 },
+      async () => {
+        forwarded = true;
+        return { ok: true, result: { choice: "deny" } };
+      },
+      { trustedOrigin: async () => "https://devnet.example.test" },
+    );
+    expect(res).toEqual({
+      ok: true,
+      result: { choice: "allow", autoApproved: true, origin: "https://devnet.example.test" },
+    });
+    expect(forwarded).toBe(false);
+    expect(registry.list()).toHaveLength(0);
+    expect(entries).toEqual([
+      { kind: "consent.auto_approved", title: "Click", origin: "https://devnet.example.test", tabId: 7 },
+    ]);
+  });
+
+  it("prompts when the tab's origin is not trusted", async () => {
+    const { registry, events } = makeRegistry();
+    const res = await registry.request(
+      { title: "t", body: "b", tabId: 7 },
+      async () => ({ ok: true, result: { choice: "deny" } }),
+      { trustedOrigin: async () => undefined },
+    );
+    expect(res).toEqual({ ok: true, result: { choice: "deny" } });
+    expect(events.map((e) => e.topic)).toEqual(["consent.requested", "consent.resolved"]);
+  });
+
+  it("never auto-approves a local-only consent", async () => {
+    const { registry } = makeRegistry();
+    let asked = false;
+    const res = await registry.request(
+      { title: "t", body: "b", tabId: 7, localOnly: true },
+      async () => ({ ok: true, result: { choice: "deny" } }),
+      {
+        trustedOrigin: async () => {
+          asked = true;
+          return "https://devnet.example.test";
+        },
+      },
+    );
+    expect(res).toEqual({ ok: true, result: { choice: "deny" } });
+    expect(asked).toBe(false);
   });
 
   it("times out with the cdp_timeout shape PolicyStore understands", async () => {
@@ -322,5 +374,44 @@ describe("daemon consent integration through createMcpServer", () => {
     const body = (await res.json()) as { result: { content: Array<{ text: string }> } };
     expect(JSON.parse(body.result.content[0]!.text)).toMatchObject({ choice: "allow" });
     expect(topics).toEqual(["consent.requested", "consent.resolved"]);
+  });
+
+  async function destructiveClickOn(tabUrl: string): Promise<string[]> {
+    const previous = process.env.FN_BROWSER_TRUSTED_ORIGINS;
+    process.env.FN_BROWSER_TRUSTED_ORIGINS = "https://devnet.example.test, not-a-url";
+    try {
+      const calls: string[] = [];
+      const { app } = createMcpServer({
+        bridge: bridgeReplying((method) => {
+          calls.push(method);
+          if (method === "list_tabs") return { ok: true, result: [{ id: 1, url: tabUrl }, { id: 2, url: "https://other.test/" }] };
+          if (method === "__internal_request_consent") return { ok: true, result: { choice: "deny" } };
+          return { ok: true, result: { clicked: true } };
+        }),
+        consent: new ConsentRegistry(new EventBus(), noopAudit),
+      });
+      await app.request("/", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name: "click", arguments: { tabId: 1, selector: "button", destructive: true } },
+        }),
+      });
+      return calls;
+    } finally {
+      if (previous === undefined) delete process.env.FN_BROWSER_TRUSTED_ORIGINS;
+      else process.env.FN_BROWSER_TRUSTED_ORIGINS = previous;
+    }
+  }
+
+  it("skips the prompt for a destructive action on a FN_BROWSER_TRUSTED_ORIGINS tab", async () => {
+    expect(await destructiveClickOn("https://devnet.example.test/support?page=0")).toEqual(["list_tabs", "click"]);
+  });
+
+  it("still prompts for a destructive action on any other origin", async () => {
+    expect(await destructiveClickOn("https://prod.example.test/")).toEqual(["list_tabs", "__internal_request_consent"]);
   });
 });

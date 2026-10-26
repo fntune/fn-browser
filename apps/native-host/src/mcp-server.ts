@@ -14,7 +14,7 @@ import {
   type McpServer,
   isReplaySafeTool,
 } from "@fntune/browser/mcp";
-import type { SessionId, TabId } from "@fntune/browser/cdp";
+import type { SessionId, TabId, TabInfo } from "@fntune/browser/cdp";
 import { createHostToolPlugins } from "./plugins.js";
 import type { ExtensionBridge } from "./extension-bridge.js";
 import { RunLog, summarize } from "./observability/run-log.js";
@@ -130,6 +130,27 @@ export function createMcpServer(deps: McpServerDeps): {
     return { ok: false, error: res.error };
   };
 
+  const trustedOrigins = trustedOriginsFromEnv();
+  if (trustedOrigins.size > 0) {
+    console.error(
+      `[fn-browser-host] consent prompts auto-approved on trusted origins: ${[...trustedOrigins].join(", ")}`,
+    );
+  }
+  const trustedTabOrigin = async (tabId: number, signal?: AbortSignal): Promise<string | undefined> => {
+    const res = await forwardRaw("list_tabs", {}, signal ? { signal } : undefined);
+    if (!res.ok) return undefined;
+    const tab = (res.result as TabInfo[]).find((t) => (t.id as unknown as number) === tabId);
+    if (!tab) return undefined;
+    let url: URL;
+    try {
+      url = new URL(tab.url);
+    } catch {
+      return undefined;
+    }
+    if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
+    return trustedOrigins.has("*") || trustedOrigins.has(url.origin) ? url.origin : undefined;
+  };
+
   const transport: TransportBridge = {
     get isConnected() {
       return deps.bridge.isConnected;
@@ -138,12 +159,16 @@ export function createMcpServer(deps: McpServerDeps): {
     async sendToExtension(method, params, options): Promise<ToolResult> {
       if (options?.signal?.aborted) return requestCancelledResult();
       if (method === "__internal_request_consent" && deps.consent) {
+        const consentTabId = params.tabId;
         return deps.consent.request(
           params as unknown as ConsentRequestParams,
           () => forwardRaw(method, params, options),
           {
             ...(options?.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}),
             ...(options?.signal !== undefined ? { signal: options.signal } : {}),
+            ...(trustedOrigins.size > 0 && typeof consentTabId === "number"
+              ? { trustedOrigin: () => trustedTabOrigin(consentTabId, options?.signal) }
+              : {}),
           },
         );
       }
@@ -344,6 +369,27 @@ export function sanitizeRunId(raw: string | undefined): string | undefined {
   if (!raw) return undefined;
   const cleaned = raw.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64);
   return cleaned.length > 0 ? cleaned : undefined;
+}
+
+/** Origins whose consent prompts skip the side panel; "*" trusts every http(s) origin. */
+export function trustedOriginsFromEnv(): ReadonlySet<string> {
+  const origins = new Set<string>();
+  for (const entry of (process.env.FN_BROWSER_TRUSTED_ORIGINS ?? "").split(",")) {
+    const value = entry.trim();
+    if (!value) continue;
+    if (value === "*") {
+      origins.add(value);
+      continue;
+    }
+    try {
+      const url = new URL(value);
+      if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("not http(s)");
+      origins.add(url.origin);
+    } catch {
+      console.error(`[fn-browser-host] ignoring invalid FN_BROWSER_TRUSTED_ORIGINS entry "${value}"`);
+    }
+  }
+  return origins;
 }
 
 function positiveIntEnv(name: string): number | undefined {

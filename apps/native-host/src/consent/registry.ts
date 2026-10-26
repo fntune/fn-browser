@@ -16,12 +16,19 @@ export interface ConsentRequestParams {
   localOnly?: boolean;
 }
 
+export interface ConsentRequestOptions {
+  timeoutMs?: number;
+  signal?: AbortSignal;
+  /** Resolves to the target tab's origin when FN_BROWSER_TRUSTED_ORIGINS trusts it. */
+  trustedOrigin?: () => Promise<string | undefined>;
+}
+
 /** The seam createMcpServer plugs the daemon registry into. */
 export interface ConsentSink {
   request(
     params: ConsentRequestParams,
     forward: () => Promise<ToolResult>,
-    opts: { timeoutMs?: number; signal?: AbortSignal },
+    opts: ConsentRequestOptions,
   ): Promise<ToolResult>;
 }
 
@@ -66,9 +73,23 @@ export class ConsentRegistry implements ConsentSink {
   async request(
     params: ConsentRequestParams,
     forward: () => Promise<ToolResult>,
-    opts: { timeoutMs?: number; signal?: AbortSignal } = {},
+    opts: ConsentRequestOptions = {},
   ): Promise<ToolResult> {
     if (opts.signal?.aborted) return cancelledResult();
+    // Trusted origin — approve without a prompt, as the extension's allowlist does. Never for local-only.
+    if (!params.localOnly && opts.trustedOrigin) {
+      const origin = await opts.trustedOrigin();
+      if (opts.signal?.aborted) return cancelledResult();
+      if (origin) {
+        void this.audit.append({
+          kind: "consent.auto_approved",
+          title: params.title,
+          origin,
+          ...(params.tabId !== undefined ? { tabId: params.tabId } : {}),
+        });
+        return { ok: true, result: { choice: "allow", autoApproved: true, origin } };
+      }
+    }
     // Over cap — fail closed (deny).
     if (this.pending.size >= this.maxPending) {
       void this.audit.append({ kind: "consent.rejected_overload", pending: this.pending.size });
