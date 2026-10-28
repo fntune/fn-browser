@@ -1,5 +1,6 @@
 {
   "name": "@fn-browser/browser",
+  "license": "MIT",
   "version": "0.2.0",
   "description": "Browser automation primitives and MCP server for Chrome via chrome.debugger",
   "type": "module",

@@ -1,5 +1,6 @@
 {
   "name": "fn-browser",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "description": "Browser automation MCP for Claude: MV3 Chrome extension + Bun native-messaging host.",

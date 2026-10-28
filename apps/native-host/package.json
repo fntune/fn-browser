@@ -1,5 +1,6 @@
 {
   "name": "@fn-browser/native-host",
+  "license": "MIT",
   "version": "0.3.0",
   "private": true,
   "description": "Bun native-messaging host for fn-browser: bridges the MV3 extension to a local MCP HTTP server on 127.0.0.1:7722",
