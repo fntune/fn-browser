@@ -943,8 +943,6 @@ export { PolicyStore } from "./policy-store.js";
 export { SessionRegistry, type Session } from "./session-registry.js";
 export type { ToolSchema, PermissionClass } from "./tool-catalog.js";
 export { TOOLS, getToolByName } from "./tool-catalog.js";
-export { browserProxyOptionsFromEnv, createBrowserProxy } from "./proxy.js";
-export type { BrowserProxyOptions, BrowserProxyHandler } from "./proxy.js";
 export {
   classifyHost,
   evaluateNavigationTarget,
