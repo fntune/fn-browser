@@ -184,12 +184,8 @@ describe("createDaemonApp", () => {
   it("refuses a non-loopback bind without HTTP auth configured", () => {
     const prev = {
       tokens: process.env.FN_BROWSER_AUTH_TOKENS,
-      trust: process.env.FN_BROWSER_TRUST_IDENTITY_HEADER,
-      tiers: process.env.FN_BROWSER_IDENTITY_TIERS,
     };
     delete process.env.FN_BROWSER_AUTH_TOKENS;
-    delete process.env.FN_BROWSER_TRUST_IDENTITY_HEADER;
-    delete process.env.FN_BROWSER_IDENTITY_TIERS;
     try {
       expect(() => createDaemonApp({ browsers: browsersOf(stubBridge()), bind: "0.0.0.0" })).toThrow(
         /without HTTP auth/,
@@ -199,8 +195,6 @@ describe("createDaemonApp", () => {
       expect(() => createDaemonApp({ browsers: browsersOf(stubBridge()), bind: "0.0.0.0" })).not.toThrow();
     } finally {
       restoreEnv(prev.tokens, "FN_BROWSER_AUTH_TOKENS");
-      restoreEnv(prev.trust, "FN_BROWSER_TRUST_IDENTITY_HEADER");
-      restoreEnv(prev.tiers, "FN_BROWSER_IDENTITY_TIERS");
     }
   });
 
@@ -230,27 +224,6 @@ describe("createDaemonApp", () => {
     } finally {
       restoreEnv(prev.tokens, "FN_BROWSER_AUTH_TOKENS");
       restoreEnv(prev.op, "FN_BROWSER_ORIGIN_POLICY");
-    }
-  });
-
-  it("refuses to trust the identity header on a non-loopback bind", () => {
-    const prev = {
-      trust: process.env.FN_BROWSER_TRUST_IDENTITY_HEADER,
-      tiers: process.env.FN_BROWSER_IDENTITY_TIERS,
-    };
-    process.env.FN_BROWSER_TRUST_IDENTITY_HEADER = "1";
-    process.env.FN_BROWSER_IDENTITY_TIERS = "alice@example.com:admin";
-    try {
-      expect(() => createDaemonApp({ browsers: browsersOf(stubBridge()), bind: "0.0.0.0" })).toThrow(
-        /loopback bind/,
-      );
-      // Loopback is fine.
-      expect(() => createDaemonApp({ browsers: browsersOf(stubBridge()), bind: "127.0.0.1" })).not.toThrow();
-    } finally {
-      if (prev.trust === undefined) delete process.env.FN_BROWSER_TRUST_IDENTITY_HEADER;
-      else process.env.FN_BROWSER_TRUST_IDENTITY_HEADER = prev.trust;
-      if (prev.tiers === undefined) delete process.env.FN_BROWSER_IDENTITY_TIERS;
-      else process.env.FN_BROWSER_IDENTITY_TIERS = prev.tiers;
     }
   });
 });

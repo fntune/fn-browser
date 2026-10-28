@@ -59,8 +59,6 @@ export interface OwnershipCheck {
   ownerSessionId?: SessionId;
 }
 
-export type SessionIdFactory = (ownerPrincipalId: string | undefined) => SessionId;
-
 const DEFAULT_COLORS: ChromeTabGroupColor[] = [
   "blue",
   "green",
@@ -95,12 +93,10 @@ export class SessionRegistry {
     private readonly maxSessionsPerOwner: number = DEFAULT_MAX_SESSIONS_PER_OWNER,
     /** Idle reap window; 0 disables. */
     private readonly idleTimeoutMs: number = DEFAULT_IDLE_TIMEOUT_MS,
-    /** Optional session-id factory for authenticated restore. */
-    private readonly createSessionId: SessionIdFactory = () => crypto.randomUUID() as SessionId,
   ) {}
 
   start(args: StartSessionArgs): Session {
-    return this.create({ ...args, id: this.createSessionId(args.ownerPrincipalId) });
+    return this.create({ ...args, id: crypto.randomUUID() as SessionId });
   }
 
   /**

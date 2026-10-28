@@ -120,8 +120,6 @@ mkdir -p "$FN_DIR"
 TOKENS_RE='^[[:space:]]*(export[[:space:]]+)?FN_BROWSER_AUTH_TOKENS='
 SCOPE_RE='^[[:space:]]*(export[[:space:]]+)?FN_BROWSER_AUTH_SCOPE='
 BIND_RE='^[[:space:]]*(export[[:space:]]+)?FN_BROWSER_BIND='
-TRUST_RE='^[[:space:]]*(export[[:space:]]+)?FN_BROWSER_TRUST_IDENTITY_HEADER='
-IDENTITY_RE='^[[:space:]]*(export[[:space:]]+)?FN_BROWSER_IDENTITY_TIERS='
 
 read_last_env_value() {
   local pattern="$1"
@@ -153,7 +151,7 @@ if [[ -f "$ENV_FILE" ]] && grep -Eq "$TOKENS_RE" "$ENV_FILE"; then
 fi
 
 # Prefer an act/admin-tier token for the printed command — the MCP browser
-# controls (navigate/click/run_flow) need act capability. The last assignment
+# controls (navigate/click) need act capability. The last assignment
 # wins, matching both Bash `source` and loadEnvFile().
 TOKEN="$(printf '%s' "$TOKENS_VALUE" \
   | tr ',' '\n' \
@@ -180,21 +178,13 @@ else
 
   # New local installs use MCP-only auth so the token-less side panel remains
   # available. Preserve an existing scope (including the default `all`) and do
-  # not select MCP-only auth for a remote/trusted-identity daemon configuration.
+  # not select MCP-only auth for a remote daemon configuration.
   if ! grep -Eq "$SCOPE_RE" "$ENV_FILE"; then
     BIND_VALUE="${FN_BROWSER_BIND:-}"
-    TRUST_VALUE="${FN_BROWSER_TRUST_IDENTITY_HEADER:-}"
-    IDENTITY_VALUE="${FN_BROWSER_IDENTITY_TIERS:-}"
     if [[ -z "$BIND_VALUE" ]] && grep -Eq "$BIND_RE" "$ENV_FILE"; then
       BIND_VALUE="$(read_last_env_value "$BIND_RE")"
     fi
-    if [[ -z "$TRUST_VALUE" ]] && grep -Eq "$TRUST_RE" "$ENV_FILE"; then
-      TRUST_VALUE="$(read_last_env_value "$TRUST_RE")"
-    fi
-    if [[ -z "$IDENTITY_VALUE" ]] && grep -Eq "$IDENTITY_RE" "$ENV_FILE"; then
-      IDENTITY_VALUE="$(read_last_env_value "$IDENTITY_RE")"
-    fi
-    if is_loopback_bind "$BIND_VALUE" && [[ "$TRUST_VALUE" != "1" && -z "$IDENTITY_VALUE" ]]; then
+    if is_loopback_bind "$BIND_VALUE"; then
       echo "FN_BROWSER_AUTH_SCOPE=mcp" >> "$ENV_FILE"
       echo "scope:     added FN_BROWSER_AUTH_SCOPE=mcp to $ENV_FILE"
     else

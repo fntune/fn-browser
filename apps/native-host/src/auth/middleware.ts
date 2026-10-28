@@ -1,5 +1,5 @@
 /**
- * Hono auth middleware — bearer token or trusted identity header → Principal.
+ * Hono auth middleware — bearer token → Principal.
  * Empty token table → local admin (localhost-trust).
  */
 
@@ -22,26 +22,8 @@ export const LOCAL_PRINCIPAL: Principal = {
   capabilities: TIER_CAPABILITIES.admin,
 };
 
-const DEFAULT_IDENTITY_HEADER = "Tailscale-User-Login";
-
-export interface IdentityAuthOptions {
-  /**
-   * Trust verified identity header from upstream proxy — only safe on loopback bind.
-   */
-  trustIdentityHeader?: boolean;
-  identityHeaderName?: string;
-  /** login (lower-cased) → principal, from FN_BROWSER_IDENTITY_TIERS. */
-  identities?: Map<string, Principal>;
-}
-
-export function createAuthMiddleware(
-  principals: Map<string, Principal>,
-  identity: IdentityAuthOptions = {},
-): MiddlewareHandler<AppEnv> {
-  const identities = identity.identities ?? new Map<string, Principal>();
-  const trustHeader = identity.trustIdentityHeader === true && identities.size > 0;
-  const headerName = identity.identityHeaderName ?? DEFAULT_IDENTITY_HEADER;
-  const enabled = principals.size > 0 || trustHeader;
+export function createAuthMiddleware(principals: Map<string, Principal>): MiddlewareHandler<AppEnv> {
+  const enabled = principals.size > 0;
 
   // Precompute digests for constant-time bearer lookup (no Map.get timing leak).
   const tokenDigests: Array<{ digest: Buffer; principal: Principal }> = [];
@@ -67,11 +49,6 @@ export function createAuthMiddleware(
       for (const entry of tokenDigests) {
         if (timingSafeEqual(entry.digest, reqDigest)) principal = entry.principal;
       }
-    }
-    // Fall back to the trusted tailnet identity header (audit-grade login).
-    if (!principal && trustHeader) {
-      const login = c.req.header(headerName);
-      if (login) principal = identities.get(login.toLowerCase());
     }
     if (!principal) {
       return c.json({ error: "unauthorized" }, 401);

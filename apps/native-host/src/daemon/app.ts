@@ -13,7 +13,7 @@ import {
   applyGlobalPolicyFromEnv,
   VALID_POLICIES,
 } from "../routes/global-policy.js";
-import { parseAuthTokens, parseAuthScope, parseIdentityTiers } from "../auth/tokens.js";
+import { parseAuthTokens, parseAuthScope } from "../auth/tokens.js";
 import { createAuthMiddleware } from "../auth/middleware.js";
 import type { AppEnv } from "../auth/capabilities.js";
 import { EventBus } from "../events/bus.js";
@@ -28,7 +28,7 @@ import { HOST_VERSION } from "../version.js";
 
 export interface DaemonAppDeps {
   browsers: Browsers;
-  /** Bind address; identity-header trust requires loopback. */
+  /** Bind address; a non-loopback bind requires bearer auth. */
   bind?: string;
   /** Idle-session reaper interval (ms); off by default (tests). */
   reapIntervalMs?: number;
@@ -105,10 +105,8 @@ export function createDaemonApp(deps: DaemonAppDeps): DaemonApp {
 
   // --- Auth posture ---
   const principals = parseAuthTokens(process.env.FN_BROWSER_AUTH_TOKENS);
-  const identities = parseIdentityTiers(process.env.FN_BROWSER_IDENTITY_TIERS);
-  const trustIdentityHeader = process.env.FN_BROWSER_TRUST_IDENTITY_HEADER === "1";
   const authScope = parseAuthScope(process.env.FN_BROWSER_AUTH_SCOPE);
-  const httpAuthConfigured = principals.size > 0 || (trustIdentityHeader && identities.size > 0);
+  const httpAuthConfigured = principals.size > 0;
 
   if (authScope === "mcp" && principals.size === 0) {
     // Fail loud — empty tokens must not silently grant local-admin MCP access.
@@ -123,30 +121,14 @@ export function createDaemonApp(deps: DaemonAppDeps): DaemonApp {
       `FN_BROWSER_AUTH_SCOPE=mcp requires a loopback bind (panel routes stay unauthenticated); refusing with bind="${bind}".`,
     );
   }
-  if (authScope === "mcp" && trustIdentityHeader) {
-    throw new Error(
-      "FN_BROWSER_AUTH_SCOPE=mcp is incompatible with FN_BROWSER_TRUST_IDENTITY_HEADER (remote ingress needs auth on every route).",
-    );
-  }
-  if (trustIdentityHeader && !loopback) {
-    // Non-loopback + trusted identity header = spoofable — fail loud.
-    throw new Error(
-      `FN_BROWSER_TRUST_IDENTITY_HEADER requires a loopback bind (the tsnet sidecar must be the sole ingress); refusing with bind="${bind}".`,
-    );
-  }
   if (!loopback && !httpAuthConfigured) {
     throw new Error(
-      `fn-browserd bound to non-loopback ${bind} without HTTP auth — set FN_BROWSER_AUTH_TOKENS or FN_BROWSER_IDENTITY_TIERS (+FN_BROWSER_TRUST_IDENTITY_HEADER=1).`,
+      `fn-browserd bound to non-loopback ${bind} without HTTP auth — set FN_BROWSER_AUTH_TOKENS.`,
     );
   }
   if (principals.size > 0) {
     console.error(
       `[fn-browser-host] bearer auth enabled (${principals.size} principal${principals.size === 1 ? "" : "s"}, scope: ${authScope === "mcp" ? "/mcp/* only" : "all routes"})`,
-    );
-  }
-  if (trustIdentityHeader && identities.size > 0) {
-    console.error(
-      `[fn-browser-host] trusting upstream identity header for ${identities.size} tailnet login(s)`,
     );
   }
 
@@ -218,7 +200,7 @@ export function createDaemonApp(deps: DaemonAppDeps): DaemonApp {
   const app = new Hono<AppEnv>();
 
   // Auth first — scope=mcp uses separate middleware per path to avoid tier escalation.
-  const httpAuth = createAuthMiddleware(principals, { trustIdentityHeader, identities });
+  const httpAuth = createAuthMiddleware(principals);
   if (authScope === "mcp") {
     const loopbackTrust = createAuthMiddleware(new Map());
     app.use("*", (c, next) =>

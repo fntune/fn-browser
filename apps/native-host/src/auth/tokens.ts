@@ -60,30 +60,3 @@ export function parseAuthScope(raw: string | undefined): AuthScope {
   if (scope === "all" || scope === "mcp") return scope;
   throw new Error(`FN_BROWSER_AUTH_SCOPE: unknown scope "${raw}" (expected all or mcp)`);
 }
-
-/** Parse `FN_BROWSER_IDENTITY_TIERS` (`login:tier`); split on last `:`. Malformed → throw. */
-export function parseIdentityTiers(raw: string | undefined): Map<string, Principal> {
-  const table = new Map<string, Principal>();
-  if (!raw || raw.trim() === "") return table;
-
-  for (const entry of raw.split(",").map((s) => s.trim()).filter((s) => s.length > 0)) {
-    const idx = entry.lastIndexOf(":");
-    if (idx <= 0 || idx === entry.length - 1) {
-      throw new Error(`FN_BROWSER_IDENTITY_TIERS: malformed entry "${entry}" (expected login:tier)`);
-    }
-    const login = entry.slice(0, idx).toLowerCase();
-    const tier = entry.slice(idx + 1);
-    if (!isCapabilityTier(tier)) {
-      throw new Error(
-        `FN_BROWSER_IDENTITY_TIERS: entry "${entry}" has unknown tier "${tier}" (expected read, act, or admin)`,
-      );
-    }
-    // Duplicate login (incl. case variants) would make entry order pick the tier.
-    if (table.has(login)) {
-      throw new Error(`FN_BROWSER_IDENTITY_TIERS: duplicate login "${login}"`);
-    }
-    table.set(login, { id: login, tier, capabilities: TIER_CAPABILITIES[tier] });
-  }
-
-  return table;
-}

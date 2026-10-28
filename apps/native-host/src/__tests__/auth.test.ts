@@ -5,7 +5,7 @@ import { PassThrough } from "node:stream";
 import { createMcpServer } from "../mcp-server.js";
 import { ExtensionBridge } from "../extension-bridge.js";
 import { NativeMessagingBridge } from "../native-messaging.js";
-import { parseAuthTokens, parseIdentityTiers } from "../auth/tokens.js";
+import { parseAuthTokens } from "../auth/tokens.js";
 import {
   argScopedTierAllows,
   authorizeTool,
@@ -111,7 +111,6 @@ describe("capability tiers", () => {
     const p = principal("act");
     expect(authorizeTool(p, "navigate").allowed).toBe(true);
     expect(authorizeTool(p, "click").allowed).toBe(true);
-    expect(authorizeTool(p, "run_flow").allowed).toBe(true);
     expect(authorizeTool(p, "upload_file").allowed).toBe(false);
     expect(authorizeTool(p, "evaluate_js").allowed).toBe(false);
   });
@@ -229,62 +228,5 @@ describe("auth middleware over the MCP surface", () => {
     };
     expect((await listAll("tok_read")).error?.code).toBe(-32003); // read denied
     expect((await listAll("tok_admin")).error?.code).not.toBe(-32003); // admin passes the gate
-  });
-});
-
-describe("trusted tailnet identity header", () => {
-  function appWithIdentity(tiers: string): Hono<AppEnv> {
-    const { app: mcpApp } = createMcpServer({ browsers: browsersOf(stubBridge()) });
-    const app = new Hono<AppEnv>();
-    app.use(
-      "*",
-      createAuthMiddleware(new Map(), {
-        trustIdentityHeader: true,
-        identities: parseIdentityTiers(tiers),
-      }),
-    );
-    app.route("/mcp/browser", mcpApp);
-    return app;
-  }
-
-  async function call(app: Hono<AppEnv>, name: string, login?: string) {
-    const res = await app.request("/mcp/browser", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        ...(login ? { "Tailscale-User-Login": login } : {}),
-      },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: {} } }),
-    });
-    return { status: res.status, body: (await res.json()) as { error?: { code: number } } };
-  }
-
-  it("parses login:tier (splitting on the last colon)", () => {
-    const table = parseIdentityTiers("alice@example.com:admin,bob@corp.io:read");
-    expect(table.get("alice@example.com")).toMatchObject({ id: "alice@example.com", tier: "admin" });
-    expect(table.get("bob@corp.io")).toMatchObject({ tier: "read" });
-    expect(() => parseIdentityTiers("alice@example.com:wizard")).toThrow(/unknown tier/);
-  });
-
-  it("rejects duplicate logins (incl. case variants) so entry order can't decide tier", () => {
-    expect(() => parseIdentityTiers("alice@example.com:read,alice@example.com:admin")).toThrow(
-      /duplicate login/,
-    );
-    expect(() => parseIdentityTiers("Alice@Example.com:read,alice@example.com:admin")).toThrow(
-      /duplicate login/,
-    );
-  });
-
-  it("maps a verified login header to its tier", async () => {
-    const app = appWithIdentity("alice@example.com:admin,bob@corp.io:read");
-    expect((await call(app, "evaluate_js", "alice@example.com")).body.error).toBeUndefined();
-    // bob is read-only — evaluate_js forbidden
-    expect((await call(app, "evaluate_js", "bob@corp.io")).body.error?.code).toBe(-32003);
-  });
-
-  it("401s an unknown or absent login", async () => {
-    const app = appWithIdentity("alice@example.com:admin");
-    expect((await call(app, "read_page", "mallory@evil.com")).status).toBe(401);
-    expect((await call(app, "read_page")).status).toBe(401);
   });
 });

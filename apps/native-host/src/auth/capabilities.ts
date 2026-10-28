@@ -12,8 +12,7 @@ export type Capability =
   | "meta"
   | "ratelimit"
   | "policy.write"
-  | "consent.approve"
-  | "flows.run";
+  | "consent.approve";
 
 export type CapabilityTier = "read" | "act" | "admin";
 
@@ -30,7 +29,6 @@ const ACT_CAPS: readonly Capability[] = [
   ...READ_CAPS,
   "tabs.create",
   "page.act",
-  "flows.run",
   // Mutates shared quota state — read tier must not reach these.
   "ratelimit",
 ];
@@ -94,8 +92,6 @@ const TOOL_CAPABILITY: Record<string, Capability> = {
   // privileged
   upload_file: "files.upload",
   evaluate_js: "js.evaluate",
-  // flows
-  run_flow: "flows.run",
   // rate limits — act+
   rate_limit_check: "ratelimit",
   rate_limit_consume: "ratelimit",
@@ -126,7 +122,7 @@ export function authorizeTool(principal: Principal, toolName: string): Authoriza
   return { allowed: principal.capabilities.has(required), required };
 }
 
-/** Arg-scoped tier rules — enforced at dispatch and in run_flow authorize hook. */
+/** Arg-scoped tier rules, enforced at dispatch. */
 export function argScopedTierAllows(
   toolName: string,
   args: Record<string, unknown>,

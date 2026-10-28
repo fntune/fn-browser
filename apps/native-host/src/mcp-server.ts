@@ -29,7 +29,6 @@ import {
 } from "./auth/capabilities.js";
 import { LOCAL_PRINCIPAL } from "./auth/middleware.js";
 import type { ConsentSink, ConsentRequestParams } from "./consent/registry.js";
-import { createSessionIdentity } from "./session-identity.js";
 
 type McpContent =
   | { type: "text"; text: string }
@@ -87,14 +86,8 @@ export function createMcpServer(deps: McpServerDeps): {
   policy: PolicyStore;
 } {
   const scheduler = new CommandScheduler(schedulerConfigFromEnv());
-  const sessionIdentity = createSessionIdentity(process.env.FN_BROWSER_SESSION_SIGNING_KEY);
   // Own registry so dispatch can re-check session.closing and run the idle reaper.
-  const sessions = new SessionRegistry(
-    undefined,
-    undefined,
-    sessionIdleMsFromEnv(),
-    sessionIdentity.createSessionId,
-  );
+  const sessions = new SessionRegistry(undefined, undefined, sessionIdleMsFromEnv());
   const policy = new PolicyStore(sessions);
 
   /** Wait for `browser` (or any browser when undefined) to (re)connect. */
@@ -340,11 +333,8 @@ export function createMcpServer(deps: McpServerDeps): {
     const headerRunId = c.req.header("X-Run-Id");
     const principal = c.get("principal") ?? LOCAL_PRINCIPAL;
 
-    // Restore stale ids after restart; authenticated mode requires a signed owner match.
-    const canRestore =
-      principal === LOCAL_PRINCIPAL ||
-      (sessionId !== undefined && sessionIdentity.verifiesOwner(sessionId, principal.id));
-    if (sessionId && !sessions.has(sessionId) && canRestore) {
+    // Restore stale ids after a restart; ids are random UUIDs, so the caller becomes the owner.
+    if (sessionId && !sessions.has(sessionId)) {
       try {
         sessions.create({
           id: sessionId,
@@ -513,7 +503,7 @@ async function handleRequest(
           };
         }
 
-        // Arg-scoped tier gate; also enforced in the authorize hook for run_flow nodes.
+        // Arg-scoped tier gate.
         if (!argScopedTierAllows(params.name, args, principal.tier)) {
           return {
             jsonrpc: "2.0",

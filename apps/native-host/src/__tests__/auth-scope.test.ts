@@ -43,8 +43,6 @@ function stubBridge(): ExtensionBridge {
 const AUTH_ENV_KEYS = [
 	"FN_BROWSER_AUTH_TOKENS",
 	"FN_BROWSER_AUTH_SCOPE",
-	"FN_BROWSER_TRUST_IDENTITY_HEADER",
-	"FN_BROWSER_IDENTITY_TIERS",
 ] as const;
 
 async function withAuthEnv<T>(
@@ -165,22 +163,6 @@ describe("FN_BROWSER_AUTH_SCOPE=mcp", () => {
 				expect(() =>
 					createDaemonApp({ browsers: browsersOf(stubBridge()), bind: "0.0.0.0" }),
 				).toThrow(/requires a loopback bind/);
-			},
-		);
-	});
-
-	it("refuses the trusted identity header (remote ingress needs auth everywhere)", async () => {
-		await withAuthEnv(
-			{
-				FN_BROWSER_AUTH_TOKENS: tokens,
-				FN_BROWSER_AUTH_SCOPE: "mcp",
-				FN_BROWSER_TRUST_IDENTITY_HEADER: "1",
-				FN_BROWSER_IDENTITY_TIERS: "alice@example.com:admin",
-			},
-			() => {
-				expect(() => createDaemonApp({ browsers: browsersOf(stubBridge()) })).toThrow(
-					/incompatible/,
-				);
 			},
 		);
 	});
