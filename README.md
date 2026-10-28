@@ -10,7 +10,7 @@ human-in-the-loop consent prompts for anything destructive.
 | Path | What it is |
 |---|---|
 | `packages/browser` | CDP wrappers (stealth-guarded), MCP server factory, sessions, HITL policy |
-| `packages/log` | Structured logger (`@fntune/log`) |
+| `packages/log` | Structured logger (`@fn-browser/log`) |
 | `packages/utils` | Shared helpers — `host-classification` for SSRF origin policy |
 | `apps/chrome-extension` | MV3 extension: background SW owns `chrome.debugger`, React side panel |
 | `apps/native-host` | Bun binary Chrome spawns via native messaging; Hono HTTP MCP on `127.0.0.1:7722` |

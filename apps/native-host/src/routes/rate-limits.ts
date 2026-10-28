@@ -1,7 +1,7 @@
 /** Rate-limit counter snapshot for side panel — admin-only (cross-session keys). */
 
 import { Hono } from "hono";
-import type { McpServer } from "@fntune/browser/mcp";
+import type { McpServer } from "@fn-browser/browser/mcp";
 import type { AppEnv } from "../auth/capabilities.js";
 import { LOCAL_PRINCIPAL } from "../auth/middleware.js";
 

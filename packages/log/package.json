@@ -1,5 +1,5 @@
 {
-  "name": "@fntune/log",
+  "name": "@fn-browser/log",
   "version": "0.1.0",
   "description": "Structured JSON logger with OpenTelemetry support",
   "type": "module",
@@ -25,7 +25,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@fntune/utils": "workspace:*"
+    "@fn-browser/utils": "workspace:*"
   },
   "peerDependencies": {
     "@opentelemetry/api": "^1.7.0"

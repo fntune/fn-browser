@@ -1,4 +1,4 @@
-# @fntune/chrome-extension
+# @fn-browser/chrome-extension
 
 MV3 Chrome extension that owns `chrome.debugger` for the fn-browser stack. Bridges all CDP operations to the native host (`apps/native-host`) over native messaging, which in turn exposes them as MCP tools on `http://localhost:7722/mcp/browser` for Claude.
 
@@ -45,4 +45,4 @@ The extension does **not** use `webRequest` (observe-only in MV3 anyway), proxy,
 - Stop overlay mounts inside a **closed Shadow DOM** with a randomized host ID. Page JS cannot read the overlay — no MutationObserver-based extension fingerprinting.
 - `web_accessible_resources.use_dynamic_url: true` — resource URLs rotate per session, so `fetch('chrome-extension://<id>/...')` probing is useless.
 - All injected DOM is removed on `chrome.debugger.onDetach`. No forensic artifacts remain after a run.
-- Never calls `Runtime.enable`, `Console.enable`, `Debugger.enable`, `Page.evaluateOnNewDocument`. CI grep in `@fntune/browser` guards against regressions.
+- Never calls `Runtime.enable`, `Console.enable`, `Debugger.enable`, `Page.evaluateOnNewDocument`. CI grep in `@fn-browser/browser` guards against regressions.

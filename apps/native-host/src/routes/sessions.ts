@@ -3,8 +3,8 @@
  */
 
 import { Hono } from "hono";
-import type { McpServer } from "@fntune/browser/mcp";
-import type { HitlMode, SessionId } from "@fntune/browser/cdp";
+import type { McpServer } from "@fn-browser/browser/mcp";
+import type { HitlMode, SessionId } from "@fn-browser/browser/cdp";
 import type { AppEnv } from "../auth/capabilities.js";
 import { LOCAL_PRINCIPAL } from "../auth/middleware.js";
 

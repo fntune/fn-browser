@@ -1,6 +1,6 @@
 /** Daemon-owned consent queue — first of extension, operator, or timeout wins. */
 
-import type { ToolResult } from "@fntune/browser/mcp";
+import type { ToolResult } from "@fn-browser/browser/mcp";
 import type { EventBus } from "../events/bus.js";
 import type { AuditLog } from "../observability/audit.js";
 

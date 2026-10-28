@@ -2,8 +2,8 @@
 
 import { Hono } from "hono";
 import type { Context, MiddlewareHandler, Next } from "hono";
-import type { TabId } from "@fntune/browser/cdp";
-import { PERMISSIVE_ORIGIN_POLICY, REMOTE_ORIGIN_POLICY, type McpServer } from "@fntune/browser/mcp";
+import type { TabId } from "@fn-browser/browser/cdp";
+import { PERMISSIVE_ORIGIN_POLICY, REMOTE_ORIGIN_POLICY, type McpServer } from "@fn-browser/browser/mcp";
 import type { Browsers } from "../browsers.js";
 import { createMcpServer } from "../mcp-server.js";
 import { createSessionsRouter } from "../routes/sessions.js";

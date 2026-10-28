@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { Hono } from "hono";
-import { createBrowserMcpServer, PolicyStore, SessionRegistry } from "@fntune/browser/mcp";
-import type { TransportBridge, ToolResult } from "@fntune/browser/mcp";
-import type { SessionId } from "@fntune/browser/cdp";
+import { createBrowserMcpServer, PolicyStore, SessionRegistry } from "@fn-browser/browser/mcp";
+import type { TransportBridge, ToolResult } from "@fn-browser/browser/mcp";
+import type { SessionId } from "@fn-browser/browser/cdp";
 import { createSessionsRouter } from "../routes/sessions.js";
 import { createRateLimitsRouter } from "../routes/rate-limits.js";
 import {

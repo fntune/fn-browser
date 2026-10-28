@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { HitlMode } from "@fntune/browser/cdp";
+import type { HitlMode } from "@fn-browser/browser/cdp";
 
 export type GlobalPolicy = HitlMode | null;
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { CommandScheduler } from "../scheduler.js";
-import type { ToolResult } from "@fntune/browser/mcp";
+import type { ToolResult } from "@fn-browser/browser/mcp";
 
 const tick = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
 

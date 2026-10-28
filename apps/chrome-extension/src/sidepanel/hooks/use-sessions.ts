@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ChromeTabGroupColor, HitlMode } from "@fntune/browser/cdp";
+import type { ChromeTabGroupColor, HitlMode } from "@fn-browser/browser/cdp";
 
 export interface SessionView {
   id: string;

@@ -10,7 +10,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import type { HitlMode } from "@fntune/browser/cdp";
+import type { HitlMode } from "@fn-browser/browser/cdp";
 
 interface PolicyState {
   globalPolicy: HitlMode | null;

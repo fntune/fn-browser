@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import type { HitlMode } from "@fntune/browser/cdp";
+import type { HitlMode } from "@fn-browser/browser/cdp";
 import type { SessionView } from "../hooks/use-sessions.js";
 import { tabGroupHex } from "../lib/chrome-palette.js";
 import { Badge } from "../ui/badge.js";

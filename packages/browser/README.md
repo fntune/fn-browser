@@ -1,4 +1,4 @@
-# @fntune/browser
+# @fn-browser/browser
 
 Browser automation primitives and MCP server for Chrome via `chrome.debugger`.
 
@@ -8,11 +8,11 @@ Architecture: a MV3 Chrome extension owns the CDP session (through `chrome.debug
 
 | Subpath | Purpose |
 |---|---|
-| `@fntune/browser` | Re-exports of commonly-used types |
-| `@fntune/browser/cdp` | `BrowserController`, typed `chrome.debugger` wrappers, shared types |
-| `@fntune/browser/mcp` | `createBrowserMcpServer()` factory + `McpToolPlugin` extension point |
+| `@fn-browser/browser` | Re-exports of commonly-used types |
+| `@fn-browser/browser/cdp` | `BrowserController`, typed `chrome.debugger` wrappers, shared types |
+| `@fn-browser/browser/mcp` | `createBrowserMcpServer()` factory + `McpToolPlugin` extension point |
 
-This package has **no `@fntune/workflows` dependency**. Durable flow execution
+This package has **no `@fn-browser/workflows` dependency**. Durable flow execution
 (including a `run_flow` MCP tool) is out of scope for this distribution; the
 MCP server accepts optional plugins via `createBrowserMcpServer({ plugins })`
 if you wire one in yourself.

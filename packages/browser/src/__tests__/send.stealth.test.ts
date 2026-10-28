@@ -14,7 +14,7 @@ const tab = (n: number) => n as unknown as TabId;
 describe("send() stealth guard", () => {
   it("refuses Runtime.enable", async () => {
     await expect(send(tab(1), "Runtime.enable", {})).rejects.toThrow(
-      /forbidden by @fntune\/browser stealth hygiene/,
+      /forbidden by @fn-browser\/browser stealth hygiene/,
     );
   });
 

@@ -19,10 +19,10 @@ export default defineConfig({
   outDir: "dist",
   outExtension: () => ({ js: ".js" }),
   // Chrome loads the extension as a static folder — no node_modules resolution.
-  // Bundle workspace deps inline so "@fntune/browser/cdp" resolves. Bundle React +
+  // Bundle workspace deps inline so "@fn-browser/browser/cdp" resolves. Bundle React +
   // Radix + TanStack too so the side panel is self-contained.
   noExternal: [
-    /^@fntune\//,
+    /^@fn-browser\//,
     "react",
     "react-dom",
     "react-dom/client",

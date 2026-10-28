@@ -1,6 +1,6 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
-import type { SessionId } from "@fntune/browser/cdp";
+import type { SessionId } from "@fn-browser/browser/cdp";
 
 const MIN_SIGNING_KEY_BYTES = 32;
 const SIGNED_SESSION_PATTERN =

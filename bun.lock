@@ -10,10 +10,10 @@
       },
     },
     "apps/chrome-extension": {
-      "name": "@fntune/chrome-extension",
-      "version": "0.2.0",
+      "name": "@fn-browser/chrome-extension",
+      "version": "0.3.0",
       "dependencies": {
-        "@fntune/browser": "workspace:*",
+        "@fn-browser/browser": "workspace:*",
         "@radix-ui/react-dialog": "^1.1.2",
         "@radix-ui/react-scroll-area": "^1.2.1",
         "@radix-ui/react-select": "^2.1.2",
@@ -41,16 +41,16 @@
       },
     },
     "apps/native-host": {
-      "name": "@fntune/native-host",
-      "version": "0.2.0",
+      "name": "@fn-browser/native-host",
+      "version": "0.3.0",
       "bin": {
         "fn-native-host": "./bin/host",
         "fn-browserd": "./bin/fn-browserd",
       },
       "dependencies": {
-        "@fntune/browser": "workspace:*",
-        "@fntune/log": "workspace:*",
-        "@fntune/utils": "workspace:*",
+        "@fn-browser/browser": "workspace:*",
+        "@fn-browser/log": "workspace:*",
+        "@fn-browser/utils": "workspace:*",
         "hono": "^4.12.18",
       },
       "devDependencies": {
@@ -60,10 +60,10 @@
       },
     },
     "packages/browser": {
-      "name": "@fntune/browser",
+      "name": "@fn-browser/browser",
       "version": "0.2.0",
       "dependencies": {
-        "@fntune/utils": "workspace:*",
+        "@fn-browser/utils": "workspace:*",
         "hono": "^4.12.18",
       },
       "devDependencies": {
@@ -74,10 +74,10 @@
       },
     },
     "packages/log": {
-      "name": "@fntune/log",
+      "name": "@fn-browser/log",
       "version": "0.1.0",
       "dependencies": {
-        "@fntune/utils": "workspace:*",
+        "@fn-browser/utils": "workspace:*",
       },
       "devDependencies": {
         "@opentelemetry/api": "^1.7.0",
@@ -93,7 +93,7 @@
       ],
     },
     "packages/utils": {
-      "name": "@fntune/utils",
+      "name": "@fn-browser/utils",
       "version": "0.1.0",
       "devDependencies": {
         "tsup": "^8.0.0",
@@ -180,15 +180,15 @@
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.12", "", {}, "sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww=="],
 
-    "@fntune/browser": ["@fntune/browser@workspace:packages/browser"],
+    "@fn-browser/browser": ["@fn-browser/browser@workspace:packages/browser"],
 
-    "@fntune/chrome-extension": ["@fntune/chrome-extension@workspace:apps/chrome-extension"],
+    "@fn-browser/chrome-extension": ["@fn-browser/chrome-extension@workspace:apps/chrome-extension"],
 
-    "@fntune/log": ["@fntune/log@workspace:packages/log"],
+    "@fn-browser/log": ["@fn-browser/log@workspace:packages/log"],
 
-    "@fntune/native-host": ["@fntune/native-host@workspace:apps/native-host"],
+    "@fn-browser/native-host": ["@fn-browser/native-host@workspace:apps/native-host"],
 
-    "@fntune/utils": ["@fntune/utils@workspace:packages/utils"],
+    "@fn-browser/utils": ["@fn-browser/utils@workspace:packages/utils"],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PassThrough } from "node:stream";
-import type { SessionId, TabId } from "@fntune/browser/cdp";
+import type { SessionId, TabId } from "@fn-browser/browser/cdp";
 
 import { createMcpServer, REQUEST_TIMEOUT_MS, requestTimeoutMsFromEnv } from "../mcp-server.js";
 import { ExtensionBridge, type CommandResult, type CommandFailure } from "../extension-bridge.js";

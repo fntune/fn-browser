@@ -1,11 +1,11 @@
-# @fntune/log
+# @fn-browser/log
 
 Structured JSON logger with OpenTelemetry support for consistent, observable logging across your application.
 
 ## Installation
 
 ```bash
-bun add @fntune/log
+bun add @fn-browser/log
 ```
 
 ## Key Exports
@@ -19,7 +19,7 @@ bun add @fntune/log
 ### Basic Logging
 
 ```typescript
-import { log } from "@fntune/log";
+import { log } from "@fn-browser/log";
 
 // Different log levels
 log.info("User signed up", { userId: "123", email: "user@example.com" });
@@ -31,7 +31,7 @@ log.debug("Processing webhook", { payload: webhookData });
 ### Custom Logger Instance
 
 ```typescript
-import { StructuredLogger } from "@fntune/log";
+import { StructuredLogger } from "@fn-browser/log";
 
 const logger = new StructuredLogger({
   service: "payment-service",
@@ -47,7 +47,7 @@ logger.info("Payment processed", { amount: 100, currency: "USD" });
 ### OpenTelemetry Integration
 
 ```typescript
-import { log } from "@fntune/log";
+import { log } from "@fn-browser/log";
 import { trace } from "@opentelemetry/api";
 
 // Logger automatically picks up trace context
@@ -64,7 +64,7 @@ await tracer.startActiveSpan("process-order", async (span) => {
 
 ### Regular
 
-- `@fntune/utils` - Core utilities
+- `@fn-browser/utils` - Core utilities
 
 ### Optional
 

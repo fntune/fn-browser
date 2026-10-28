@@ -32,7 +32,7 @@ export async function send<T = unknown>(
 ): Promise<T> {
   if (FORBIDDEN_METHODS.has(method)) {
     throw new Error(
-      `CDP method ${method} is forbidden by @fntune/browser stealth hygiene. ` +
+      `CDP method ${method} is forbidden by @fn-browser/browser stealth hygiene. ` +
         `See packages/browser/README.md for the rationale.`,
     );
   }

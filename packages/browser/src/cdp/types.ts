@@ -1,5 +1,5 @@
 /**
- * Shared types for @fntune/browser. Safe to import from both the Chrome extension
+ * Shared types for @fn-browser/browser. Safe to import from both the Chrome extension
  * (which has chrome.* runtime) and the Bun native host (which does not).
  */
 

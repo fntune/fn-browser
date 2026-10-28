@@ -2,7 +2,7 @@
  * Session tab-group lifecycle in the extension.
  *
  * A session's Chrome tab group is created lazily from its first tab by
- * create_tab / adopt_tab (see @fntune/browser/cdp tabs) — there is no eager
+ * create_tab / adopt_tab (see @fn-browser/browser/cdp tabs) — there is no eager
  * placeholder tab.
  *
  * __internal_end_session_group either detaches the group (leaving tabs where

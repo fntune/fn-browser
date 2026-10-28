@@ -14,7 +14,7 @@ import { NativeMessagingBridge } from "../native-messaging.js";
 import type { AppEnv } from "../auth/capabilities.js";
 import { createAuthMiddleware } from "../auth/middleware.js";
 import { parseAuthTokens } from "../auth/tokens.js";
-import type { ToolResult } from "@fntune/browser/mcp";
+import type { ToolResult } from "@fn-browser/browser/mcp";
 import { browsersOf } from "./fixtures.js";
 
 const noopAudit = { append: async () => {} } as unknown as AuditLog;

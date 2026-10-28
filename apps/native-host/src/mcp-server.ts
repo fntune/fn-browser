@@ -13,8 +13,8 @@ import {
   type ToolResult,
   type McpServer,
   isReplaySafeTool,
-} from "@fntune/browser/mcp";
-import type { SessionId, TabId } from "@fntune/browser/cdp";
+} from "@fn-browser/browser/mcp";
+import type { SessionId, TabId } from "@fn-browser/browser/cdp";
 import { createHostToolPlugins } from "./plugins.js";
 import type { Browsers } from "./browsers.js";
 import { RunLog, summarize } from "./observability/run-log.js";

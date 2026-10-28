@@ -1,8 +1,8 @@
 /** Global HITL override routes; destructive actions still prompt. */
 
 import { Hono } from "hono";
-import type { McpServer } from "@fntune/browser/mcp";
-import type { HitlMode } from "@fntune/browser/cdp";
+import type { McpServer } from "@fn-browser/browser/mcp";
+import type { HitlMode } from "@fn-browser/browser/cdp";
 import type { AppEnv } from "../auth/capabilities.js";
 import { LOCAL_PRINCIPAL } from "../auth/middleware.js";
 

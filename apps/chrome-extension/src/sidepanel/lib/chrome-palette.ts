@@ -4,7 +4,7 @@
  * sees outside the extension.
  */
 
-import type { ChromeTabGroupColor } from "@fntune/browser/cdp";
+import type { ChromeTabGroupColor } from "@fn-browser/browser/cdp";
 
 export const CHROME_TAB_GROUP_HEX: Record<ChromeTabGroupColor, string> = {
   grey: "#5f6368",

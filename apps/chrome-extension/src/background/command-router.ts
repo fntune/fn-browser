@@ -30,7 +30,7 @@ import {
   detachTab,
   type GroupInstruction,
   type TabId,
-} from "@fntune/browser/cdp";
+} from "@fn-browser/browser/cdp";
 import type {
   ExtensionToHostError,
   ExtensionToHostResponse,

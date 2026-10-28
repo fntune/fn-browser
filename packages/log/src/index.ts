@@ -1,5 +1,5 @@
 /**
- * @fntune/log - Structured JSON logger with OpenTelemetry support
+ * @fn-browser/log - Structured JSON logger with OpenTelemetry support
  */
 
 export { log, createLogger } from "./logger";

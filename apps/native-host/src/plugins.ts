@@ -1,6 +1,6 @@
 /** Extra MCP tools registered by this host beyond the built-in catalog. */
 
-import type { McpToolPlugin } from "@fntune/browser/mcp";
+import type { McpToolPlugin } from "@fn-browser/browser/mcp";
 import type { Browsers } from "./browsers.js";
 
 export function createHostToolPlugins(browsers: Browsers): McpToolPlugin[] {

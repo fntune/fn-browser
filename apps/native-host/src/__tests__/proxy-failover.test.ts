@@ -1,6 +1,6 @@
 import { PassThrough } from "node:stream";
-import type { SessionId, TabId } from "@fntune/browser/cdp";
-import { createBrowserProxy } from "@fntune/browser/mcp";
+import type { SessionId, TabId } from "@fn-browser/browser/cdp";
+import { createBrowserProxy } from "@fn-browser/browser/mcp";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createDaemonApp, type DaemonApp } from "../daemon/app.js";

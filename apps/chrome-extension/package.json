@@ -1,5 +1,5 @@
 {
-  "name": "@fntune/chrome-extension",
+  "name": "@fn-browser/chrome-extension",
   "version": "0.3.0",
   "private": true,
   "description": "fn-browser MV3 Chrome extension: owns chrome.debugger, bridges to native host",
@@ -14,7 +14,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@fntune/browser": "workspace:*",
+    "@fn-browser/browser": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "class-variance-authority": "^0.7.1",

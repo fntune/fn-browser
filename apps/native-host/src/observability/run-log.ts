@@ -3,7 +3,7 @@
 import { appendFile, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { createLogger } from "@fntune/log";
+import { createLogger } from "@fn-browser/log";
 
 const log = createLogger({ pkg: "native-host", module: "observability" });
 

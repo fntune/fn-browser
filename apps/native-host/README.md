@@ -1,4 +1,4 @@
-# @fntune/native-host
+# @fn-browser/native-host
 
 Bun native-messaging host that Chrome spawns when the fn-browser extension calls `chrome.runtime.connectNative("com.fn.browser")`. Hosts an HTTP MCP server on `127.0.0.1:7722` so Claude can reach browser primitives while the extension owns CDP.
 

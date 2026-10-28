@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SessionId } from "@fntune/browser/cdp";
+import type { SessionId } from "@fn-browser/browser/cdp";
 
 import { createSessionIdentity } from "../session-identity.js";
 

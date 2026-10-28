@@ -1,5 +1,5 @@
 import { Bell, ShieldCheck, Zap } from "lucide-react";
-import type { HitlMode } from "@fntune/browser/cdp";
+import type { HitlMode } from "@fn-browser/browser/cdp";
 import type { GlobalPolicy } from "../hooks/use-global-policy.js";
 import { cn } from "../lib/cn.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip.js";

@@ -1,6 +1,6 @@
 /** Command scheduler — admission cap, per-tab lanes, browser_busy backpressure. */
 
-import type { ToolResult } from "@fntune/browser/mcp";
+import type { ToolResult } from "@fn-browser/browser/mcp";
 
 /** CDP ops that mutate page/tab state and must serialize per tab. */
 const MUTATING_METHODS: ReadonlySet<string> = new Set([

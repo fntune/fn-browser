@@ -1,5 +1,5 @@
 {
-  "name": "@fntune/browser",
+  "name": "@fn-browser/browser",
   "version": "0.2.0",
   "description": "Browser automation primitives and MCP server for Chrome via chrome.debugger",
   "type": "module",
@@ -35,7 +35,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@fntune/utils": "workspace:*",
+    "@fn-browser/utils": "workspace:*",
     "hono": "^4.12.18"
   },
   "devDependencies": {

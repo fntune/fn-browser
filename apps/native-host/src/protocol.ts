@@ -1,6 +1,6 @@
 /**
  * Mirror of the wire protocol defined in the extension. Kept separate (copy,
- * not import) because the extension imports from @fntune/browser but the host's
+ * not import) because the extension imports from @fn-browser/browser but the host's
  * build target is Bun / Node, not the browser.
  */
 
