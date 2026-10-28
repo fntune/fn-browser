@@ -16,6 +16,8 @@ export interface Session {
    * only reference sessions whose owner matches their principal.
    */
   ownerPrincipalId: string | null;
+  /** Browser (Chrome profile) the session drives; null until the host picks one. */
+  browser: string | null;
   /** null until the session's first tab lazily creates its Chrome tab group. */
   tabGroupId: number | null;
   /** null until the first tab lands; then pinned to that tab's window. */
@@ -38,6 +40,7 @@ export interface StartSessionArgs {
   name?: string;
   color?: ChromeTabGroupColor;
   ownerPrincipalId?: string;
+  browser?: string | null;
 }
 
 export interface CreateSessionArgs extends StartSessionArgs {
@@ -125,6 +128,7 @@ export class SessionRegistry {
       name: args.name ?? "session",
       color: args.color ?? this.nextColor(),
       ownerPrincipalId: args.ownerPrincipalId ?? null,
+      browser: args.browser ?? null,
       tabGroupId: null,
       windowId: null,
       createdAt: new Date(),
@@ -144,6 +148,12 @@ export class SessionRegistry {
    */
   ownerPrincipalId(sessionId: SessionId): string | null | undefined {
     return this.sessions.get(sessionId)?.ownerPrincipalId;
+  }
+
+  /** Pin the browser a session drives. No-op for an unknown session. */
+  bindBrowser(sessionId: SessionId, browser: string): void {
+    const session = this.sessions.get(sessionId);
+    if (session) session.browser = browser;
   }
 
   /**
@@ -220,7 +230,7 @@ export class SessionRegistry {
             "__internal_end_session_group",
             { tabGroupId: session.tabGroupId, onTabs, tabIds },
             // Scale with tab count — bulk close can exceed 20s.
-            { timeoutMs: Math.max(30_000, tabIds.length * 1_000) },
+            { timeoutMs: Math.max(30_000, tabIds.length * 1_000), sessionId: args.sessionId },
           );
           if (!res.ok) {
             throw new Error(`failed to close tab group: ${res.error.message}`);

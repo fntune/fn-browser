@@ -14,6 +14,7 @@ import {
   type Principal,
 } from "../auth/capabilities.js";
 import { createAuthMiddleware } from "../auth/middleware.js";
+import { browsersOf } from "./fixtures.js";
 
 function stubBridge(): ExtensionBridge {
   const bridge = new ExtensionBridge(new NativeMessagingBridge(new PassThrough(), new PassThrough()));
@@ -49,7 +50,7 @@ async function callTool(
 
 function appWithTokens(raw: string | undefined): Hono<AppEnv> {
   const principals = parseAuthTokens(raw);
-  const { app: mcpApp } = createMcpServer({ bridge: stubBridge() });
+  const { app: mcpApp } = createMcpServer({ browsers: browsersOf(stubBridge()) });
   const app = new Hono<AppEnv>();
   app.use("*", createAuthMiddleware(principals));
   app.route("/mcp/browser", mcpApp);
@@ -233,7 +234,7 @@ describe("auth middleware over the MCP surface", () => {
 
 describe("trusted tailnet identity header", () => {
   function appWithIdentity(tiers: string): Hono<AppEnv> {
-    const { app: mcpApp } = createMcpServer({ bridge: stubBridge() });
+    const { app: mcpApp } = createMcpServer({ browsers: browsersOf(stubBridge()) });
     const app = new Hono<AppEnv>();
     app.use(
       "*",

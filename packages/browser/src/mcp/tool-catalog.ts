@@ -45,11 +45,12 @@ export const TOOLS: readonly ToolSchema[] = [
   {
     name: "start",
     description:
-      "Create a session and its Chrome tab group. Returns sessionId and tab group info. Pass sessionId on subsequent session-aware MCP calls, or send it as X-Session-Id from programmatic clients.",
+      "Create a session and its Chrome tab group. Returns sessionId and tab group info. Pass sessionId on subsequent session-aware MCP calls, or send it as X-Session-Id from programmatic clients. A session drives one browser (Chrome profile): pass browser (an id or label from list_browsers) to choose; omitted, it uses the most recently focused one.",
     permission: "meta",
     inputSchema: schemaObject({
       name: string,
       color: string,
+      browser: string,
     }),
   },
   {
@@ -79,7 +80,7 @@ export const TOOLS: readonly ToolSchema[] = [
   {
     name: "list_tabs",
     description:
-      "List tabs owned by the caller's session by default. scope='all' includes tabs from other sessions plus user tabs (consent-gated).",
+      "List tabs owned by the caller's session by default. scope='all' includes tabs from other sessions plus user tabs across every connected browser, each tagged with its browser id (consent-gated).",
     permission: "read",
     inputSchema: schemaObject({
       sessionId: sessionIdArg,

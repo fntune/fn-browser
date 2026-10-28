@@ -6,6 +6,7 @@ import { persistGlobalPolicy } from "../daemon/state.js";
 import { DEFAULT_EXTENSION_ID } from "../extension.js";
 import { ExtensionBridge } from "../extension-bridge.js";
 import { NativeMessagingBridge } from "../native-messaging.js";
+import { browsersOf } from "./fixtures.js";
 
 function stubBridge(): ExtensionBridge {
   const bridge = new ExtensionBridge(new NativeMessagingBridge(new PassThrough(), new PassThrough()));
@@ -20,11 +21,11 @@ function restoreEnv(prev: string | undefined, key: string): void {
 }
 
 describe("createDaemonApp", () => {
-  it("registers exactly one extension event handler (onEvent constructed once)", () => {
+  it("subscribes to the browser registry, not to each bridge", () => {
     const extension = stubBridge();
-    createDaemonApp({ extension });
-    // The tab-reconcile handler is registered once; if a refactor moved bridge
-    // construction per-connection this would grow per reconnect (a real leak).
+    createDaemonApp({ browsers: browsersOf(extension) });
+    // The bridge's only handler is the registry's forwarder; the tab-reconcile
+    // handler hangs off the registry, so reconnects never stack handlers.
     expect(extension.eventHandlerCount).toBe(1);
   });
 
@@ -32,7 +33,7 @@ describe("createDaemonApp", () => {
     vi.useFakeTimers();
     try {
       const { mcpServer, stopReaper } = createDaemonApp({
-        extension: stubBridge(),
+        browsers: browsersOf(stubBridge()),
         reapIntervalMs: 1000,
       });
       const s = mcpServer.sessions.start({ name: "idle" });
@@ -46,12 +47,12 @@ describe("createDaemonApp", () => {
   });
 
   it("starts no reaper when reapIntervalMs is unset (no leaked timer)", () => {
-    const { stopReaper } = createDaemonApp({ extension: stubBridge() });
+    const { stopReaper } = createDaemonApp({ browsers: browsersOf(stubBridge()) });
     expect(() => stopReaper()).not.toThrow();
   });
 
   it("wires health, MCP, and the consent control plane onto one app", async () => {
-    const { app } = createDaemonApp({ extension: stubBridge() });
+    const { app } = createDaemonApp({ browsers: browsersOf(stubBridge()) });
 
     const health = (await (await app.request("/health")).json()) as {
       ok: boolean;
@@ -77,7 +78,7 @@ describe("createDaemonApp", () => {
   });
 
   it("blocks CSRF: non-JSON POST and cross-origin POST on state-changing routes", async () => {
-    const { app } = createDaemonApp({ extension: stubBridge() });
+    const { app } = createDaemonApp({ browsers: browsersOf(stubBridge()) });
     // A "simple" cross-origin POST (text/plain) is the CSRF vector → 415.
     const simple = await app.request("/global-policy", {
       method: "POST",
@@ -116,7 +117,7 @@ describe("createDaemonApp", () => {
   });
 
   it("reflects CORS only for the PINNED extension origin (default id), not web or other extensions", async () => {
-    const { app } = createDaemonApp({ extension: stubBridge() });
+    const { app } = createDaemonApp({ browsers: browsersOf(stubBridge()) });
     const pinned = `chrome-extension://${DEFAULT_EXTENSION_ID}`;
     const evil = await app.request("/global-policy", {
       method: "OPTIONS",
@@ -149,7 +150,7 @@ describe("createDaemonApp", () => {
     const prev = process.env.FN_BROWSER_EXTENSION_ID;
     process.env.FN_BROWSER_EXTENSION_ID = "goodext";
     try {
-      const { app } = createDaemonApp({ extension: stubBridge() });
+      const { app } = createDaemonApp({ browsers: browsersOf(stubBridge()) });
       const good = await app.request("/consents", {
         method: "OPTIONS",
         headers: { Origin: "chrome-extension://goodext" },
@@ -170,7 +171,7 @@ describe("createDaemonApp", () => {
     persistGlobalPolicy("act"); // a prior panel/HTTP change saved to state
     process.env.FN_BROWSER_GLOBAL_POLICY = "bogus"; // misspelled env override
     try {
-      const { app } = createDaemonApp({ extension: stubBridge() });
+      const { app } = createDaemonApp({ browsers: browsersOf(stubBridge()) });
       const res = await app.request("/global-policy");
       // Invalid env is ignored but must NOT wipe the policy — persisted wins.
       expect(await res.json()).toMatchObject({ policy: "act" });
@@ -190,12 +191,12 @@ describe("createDaemonApp", () => {
     delete process.env.FN_BROWSER_TRUST_IDENTITY_HEADER;
     delete process.env.FN_BROWSER_IDENTITY_TIERS;
     try {
-      expect(() => createDaemonApp({ extension: stubBridge(), bind: "0.0.0.0" })).toThrow(
+      expect(() => createDaemonApp({ browsers: browsersOf(stubBridge()), bind: "0.0.0.0" })).toThrow(
         /without HTTP auth/,
       );
       // With auth configured it's allowed.
       process.env.FN_BROWSER_AUTH_TOKENS = "ci:tok:admin";
-      expect(() => createDaemonApp({ extension: stubBridge(), bind: "0.0.0.0" })).not.toThrow();
+      expect(() => createDaemonApp({ browsers: browsersOf(stubBridge()), bind: "0.0.0.0" })).not.toThrow();
     } finally {
       restoreEnv(prev.tokens, "FN_BROWSER_AUTH_TOKENS");
       restoreEnv(prev.trust, "FN_BROWSER_TRUST_IDENTITY_HEADER");
@@ -211,7 +212,7 @@ describe("createDaemonApp", () => {
     process.env.FN_BROWSER_AUTH_TOKENS = "ci:tok_admin:admin";
     delete process.env.FN_BROWSER_ORIGIN_POLICY;
     try {
-      const { app } = createDaemonApp({ extension: stubBridge(), bind: "127.0.0.1" });
+      const { app } = createDaemonApp({ browsers: browsersOf(stubBridge()), bind: "127.0.0.1" });
       const res = await app.request("/mcp/browser", {
         method: "POST",
         headers: { "content-type": "application/json", Authorization: "Bearer tok_admin" },
@@ -240,11 +241,11 @@ describe("createDaemonApp", () => {
     process.env.FN_BROWSER_TRUST_IDENTITY_HEADER = "1";
     process.env.FN_BROWSER_IDENTITY_TIERS = "alice@example.com:admin";
     try {
-      expect(() => createDaemonApp({ extension: stubBridge(), bind: "0.0.0.0" })).toThrow(
+      expect(() => createDaemonApp({ browsers: browsersOf(stubBridge()), bind: "0.0.0.0" })).toThrow(
         /loopback bind/,
       );
       // Loopback is fine.
-      expect(() => createDaemonApp({ extension: stubBridge(), bind: "127.0.0.1" })).not.toThrow();
+      expect(() => createDaemonApp({ browsers: browsersOf(stubBridge()), bind: "127.0.0.1" })).not.toThrow();
     } finally {
       if (prev.trust === undefined) delete process.env.FN_BROWSER_TRUST_IDENTITY_HEADER;
       else process.env.FN_BROWSER_TRUST_IDENTITY_HEADER = prev.trust;

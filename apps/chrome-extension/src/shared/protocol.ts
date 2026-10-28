@@ -43,11 +43,18 @@ export interface ExtensionToHostEvent {
   payload: Record<string, unknown>;
 }
 
+/** The Chrome profile this extension runs in (see background/identity). */
+export interface BrowserIdentity {
+  id: string;
+  label: string;
+}
+
 export interface HostHello {
   id: MessageId;
   kind: "hello";
   extensionVersion: string;
   protocolVersion: number;
+  browser: BrowserIdentity;
 }
 
 export interface HostHelloAck {
@@ -98,7 +105,8 @@ export type ExtensionEventTopic =
   | "tab_group_changed"
   | "debugger_detached"
   | "consent_requested"
-  | "stop_clicked";
+  | "stop_clicked"
+  | "browser_focused";
 
 export type NativeMessage =
   | HostHello

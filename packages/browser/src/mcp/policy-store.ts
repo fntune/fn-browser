@@ -188,7 +188,7 @@ export class PolicyStore {
         ...(typeof args.tabId === "number" ? { tabId: args.tabId } : {}),
         ...(args.localOnly ? { localOnly: true } : {}),
       },
-      { timeoutMs, signal: args.signal },
+      { timeoutMs, signal: args.signal, sessionId: args.sessionId },
     );
 
     if (!result.ok) {

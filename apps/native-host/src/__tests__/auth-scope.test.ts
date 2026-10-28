@@ -25,6 +25,7 @@ import { createDaemonApp } from "../daemon/app.js";
 import { loadEnvFile } from "../env-file.js";
 import { ExtensionBridge } from "../extension-bridge.js";
 import { NativeMessagingBridge } from "../native-messaging.js";
+import { browsersOf } from "./fixtures.js";
 
 function stubBridge(): ExtensionBridge {
 	const bridge = new ExtensionBridge(
@@ -102,7 +103,7 @@ describe("FN_BROWSER_AUTH_SCOPE=mcp", () => {
 		await withAuthEnv(
 			{ FN_BROWSER_AUTH_TOKENS: "", FN_BROWSER_AUTH_SCOPE: "mcp" },
 			() => {
-				expect(() => createDaemonApp({ extension: stubBridge() })).toThrow(
+				expect(() => createDaemonApp({ browsers: browsersOf(stubBridge()) })).toThrow(
 					/requires at least one bearer principal/,
 				);
 			},
@@ -113,7 +114,7 @@ describe("FN_BROWSER_AUTH_SCOPE=mcp", () => {
 		await withAuthEnv(
 			{ FN_BROWSER_AUTH_TOKENS: tokens, FN_BROWSER_AUTH_SCOPE: "mcp" },
 			async () => {
-				const { app } = createDaemonApp({ extension: stubBridge() });
+				const { app } = createDaemonApp({ browsers: browsersOf(stubBridge()) });
 				const anon = await app.request("/mcp/browser", mcpCall());
 				expect(anon.status).toBe(401);
 				const authed = await app.request("/mcp/browser", mcpCall("tok_admin"));
@@ -126,7 +127,7 @@ describe("FN_BROWSER_AUTH_SCOPE=mcp", () => {
 		await withAuthEnv(
 			{ FN_BROWSER_AUTH_TOKENS: tokens, FN_BROWSER_AUTH_SCOPE: "mcp" },
 			async () => {
-				const { app } = createDaemonApp({ extension: stubBridge() });
+				const { app } = createDaemonApp({ browsers: browsersOf(stubBridge()) });
 				for (const path of ["/health", "/sessions", "/rate-limits"]) {
 					const res = await app.request(path);
 					expect(res.status, path).toBe(200);
@@ -139,7 +140,7 @@ describe("FN_BROWSER_AUTH_SCOPE=mcp", () => {
 		await withAuthEnv(
 			{ FN_BROWSER_AUTH_TOKENS: tokens, FN_BROWSER_AUTH_SCOPE: "mcp" },
 			async () => {
-				const { app } = createDaemonApp({ extension: stubBridge() });
+				const { app } = createDaemonApp({ browsers: browsersOf(stubBridge()) });
 				// evaluate_js needs the admin tier — an act token must still be refused
 				// (if the loopback-trust fallback also ran on /mcp/*, it would escalate
 				// every authenticated caller to local admin and this would succeed).
@@ -152,7 +153,7 @@ describe("FN_BROWSER_AUTH_SCOPE=mcp", () => {
 
 	it("all-scope (default) still gates every route", async () => {
 		await withAuthEnv({ FN_BROWSER_AUTH_TOKENS: tokens }, async () => {
-			const { app } = createDaemonApp({ extension: stubBridge() });
+			const { app } = createDaemonApp({ browsers: browsersOf(stubBridge()) });
 			expect((await app.request("/sessions")).status).toBe(401);
 		});
 	});
@@ -162,7 +163,7 @@ describe("FN_BROWSER_AUTH_SCOPE=mcp", () => {
 			{ FN_BROWSER_AUTH_TOKENS: tokens, FN_BROWSER_AUTH_SCOPE: "mcp" },
 			() => {
 				expect(() =>
-					createDaemonApp({ extension: stubBridge(), bind: "0.0.0.0" }),
+					createDaemonApp({ browsers: browsersOf(stubBridge()), bind: "0.0.0.0" }),
 				).toThrow(/requires a loopback bind/);
 			},
 		);
@@ -177,7 +178,7 @@ describe("FN_BROWSER_AUTH_SCOPE=mcp", () => {
 				FN_BROWSER_IDENTITY_TIERS: "alice@example.com:admin",
 			},
 			() => {
-				expect(() => createDaemonApp({ extension: stubBridge() })).toThrow(
+				expect(() => createDaemonApp({ browsers: browsersOf(stubBridge()) })).toThrow(
 					/incompatible/,
 				);
 			},

@@ -16,7 +16,7 @@ import {
 } from "@fntune/browser/mcp";
 import type { SessionId, TabId } from "@fntune/browser/cdp";
 import { createHostToolPlugins } from "./plugins.js";
-import type { ExtensionBridge } from "./extension-bridge.js";
+import type { Browsers } from "./browsers.js";
 import { RunLog, summarize } from "./observability/run-log.js";
 import { saveScreenshot } from "./observability/screenshot-store.js";
 import { HOST_VERSION } from "./version.js";
@@ -36,7 +36,7 @@ type McpContent =
   | { type: "image"; data: string; mimeType: string };
 
 export interface McpServerDeps {
-  bridge: ExtensionBridge;
+  browsers: Browsers;
   /** When set, consent routes through the daemon registry; else extension-only. */
   consent?: ConsentSink;
   /** SSRF egress policy; defaults from FN_BROWSER_ORIGIN_POLICY when absent. */
@@ -97,50 +97,142 @@ export function createMcpServer(deps: McpServerDeps): {
   );
   const policy = new PolicyStore(sessions);
 
-  const waitUntilConnected = async (signal?: AbortSignal): Promise<boolean> => {
+  /** Wait for `browser` (or any browser when undefined) to (re)connect. */
+  const waitForBrowser = async (
+    browser: string | undefined,
+    signal?: AbortSignal,
+  ): Promise<boolean> => {
+    const ready = (): boolean =>
+      browser === undefined ? deps.browsers.isConnected : deps.browsers.get(browser) !== undefined;
     const deadline = performance.now() + RECONNECT_WAIT_MS;
-    while (!deps.bridge.isConnected && !signal?.aborted && performance.now() < deadline) {
+    while (!ready() && !signal?.aborted && performance.now() < deadline) {
       await delay(RECONNECT_POLL_MS);
     }
-    return deps.bridge.isConnected && !signal?.aborted;
+    return ready() && !signal?.aborted;
+  };
+
+  const sendTo = async (
+    browser: string,
+    method: string,
+    params: Record<string, unknown>,
+    timeoutMs?: number,
+  ): Promise<ToolResult> => {
+    const bridge = deps.browsers.get(browser);
+    if (!bridge) return browserUnreachable(browser);
+    return bridge.sendCommand(method, params, timeoutMs !== undefined ? { timeoutMs } : undefined);
   };
 
   const forwardRaw = async (
+    browser: string,
     method: string,
     params: Record<string, unknown>,
     options?: TransportRequestOptions,
     validateRetry?: () => ToolResult | undefined,
   ): Promise<ToolResult> => {
     if (options?.signal?.aborted) return requestCancelledResult();
-    const commandOptions =
-      options?.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : undefined;
-    const res = await deps.bridge.sendCommand(method, params, commandOptions);
-    if (res.ok) return { ok: true, result: res.result };
+    const res = await sendTo(browser, method, params, options?.timeoutMs);
+    if (res.ok) return res;
     // Idempotent reads: one reconnect wait + retry; mutators never retry (at-most-once).
     if (res.error.code === "extension_unreachable" && isReplaySafeTool(method)) {
-      if (await waitUntilConnected(options?.signal)) {
+      if (await waitForBrowser(browser, options?.signal)) {
         if (options?.signal?.aborted) return requestCancelledResult();
         const invalid = validateRetry?.();
         if (invalid) return invalid;
-        const retry = await deps.bridge.sendCommand(method, params, commandOptions);
-        if (retry.ok) return { ok: true, result: retry.result };
-        return { ok: false, error: retry.error };
+        return sendTo(browser, method, params, options?.timeoutMs);
       }
     }
-    return { ok: false, error: res.error };
+    return res;
+  };
+
+  /** The connected browser holding `tabId`; probes each one when several are connected. */
+  const locateTab = async (tabId: number): Promise<string | undefined> => {
+    const ids = deps.browsers.ids();
+    if (ids.length <= 1) return ids[0];
+    const holds = await Promise.all(
+      ids.map(async (id) => {
+        const res = await sendTo(id, "list_tabs", {});
+        return res.ok && Array.isArray(res.result) && res.result.some((tab) => isRecord(tab) && tab.id === tabId);
+      }),
+    );
+    return ids[holds.indexOf(true)];
+  };
+
+  /** Browser for one command: the session's, else the tab's, else the default. */
+  const route = async (
+    method: string,
+    params: Record<string, unknown>,
+    sessionId: SessionId | undefined,
+  ): Promise<string | ToolResult> => {
+    const tabId = typeof params.tabId === "number" ? params.tabId : undefined;
+    const owner =
+      sessionId ?? (tabId !== undefined ? sessions.getTabOwner(tabId as unknown as TabId) : undefined);
+    const session = owner !== undefined ? sessions.get(owner) : undefined;
+    if (!session) {
+      const browser =
+        (tabId !== undefined ? await locateTab(tabId) : undefined) ?? deps.browsers.defaultId();
+      return browser ?? noBrowserConnected();
+    }
+    if (method === "adopt_tab" && tabId !== undefined) {
+      const holder = await locateTab(tabId);
+      if (holder !== undefined && holder !== session.browser) {
+        // A session with no tabs yet follows the tab it adopts; one with a group stays put.
+        if (session.tabGroupId !== null) return crossBrowserTab(tabId, holder, session.browser);
+        sessions.bindBrowser(session.id, holder);
+      }
+    }
+    if (session.browser !== null) return session.browser;
+    const fallback = deps.browsers.defaultId();
+    if (fallback === undefined) return noBrowserConnected();
+    sessions.bindBrowser(session.id, fallback);
+    return fallback;
+  };
+
+  const listAllTabs = async (options?: TransportRequestOptions): Promise<ToolResult> => {
+    const ids = deps.browsers.ids();
+    if (ids.length === 0) return noBrowserConnected();
+    const results = await Promise.all(ids.map((id) => forwardRaw(id, "list_tabs", {}, options)));
+    const tabs: unknown[] = [];
+    let failure: ToolResult | undefined;
+    results.forEach((res, i) => {
+      if (res.ok && Array.isArray(res.result)) {
+        tabs.push(...res.result.map((tab) => (isRecord(tab) ? { ...tab, browser: ids[i] } : tab)));
+      } else {
+        failure ??= res;
+      }
+    });
+    return failure && tabs.length === 0 ? failure : { ok: true, result: tabs };
   };
 
   const transport: TransportBridge = {
     get isConnected() {
-      return deps.bridge.isConnected;
+      return deps.browsers.isConnected;
     },
-    waitUntilConnected,
+    waitUntilConnected: (signal) => waitForBrowser(undefined, signal),
+    selectBrowser(requested) {
+      if (requested === undefined) return { ok: true, browser: deps.browsers.defaultId() ?? null };
+      const browser = deps.browsers.resolve(requested);
+      if (browser !== undefined) return { ok: true, browser };
+      const known = deps.browsers
+        .list()
+        .map((b) => (b.label === b.id ? b.id : `${b.label} (${b.id})`))
+        .join(", ");
+      return {
+        ok: false,
+        error: {
+          code: "unknown_browser",
+          message: `No connected browser matches "${requested}"; ${known ? `connected: ${known}` : "none are connected"}.`,
+        },
+      };
+    },
     async sendToExtension(method, params, options): Promise<ToolResult> {
       if (options?.signal?.aborted) return requestCancelledResult();
       if (method === "__internal_request_consent" && deps.consent) {
         return deps.consent.request(
           params as unknown as ConsentRequestParams,
-          () => forwardRaw(method, params, options),
+          async () => {
+            const browser = await route(method, params, options?.sessionId);
+            return typeof browser === "string" ? forwardRaw(browser, method, params, options) : browser;
+          },
           {
             ...(options?.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}),
             ...(options?.signal !== undefined ? { signal: options.signal } : {}),
@@ -174,7 +266,10 @@ export function createMcpServer(deps: McpServerDeps): {
                 error: { code: "session_closing", message: `Session for tab ${params.tabId} is closing.` },
               };
             }
-            return forwardRaw(method, params, options, () => {
+            if (method === "list_tabs" && params.groupId === undefined) return listAllTabs(options);
+            const browser = await route(method, params, options?.sessionId);
+            if (typeof browser !== "string") return browser;
+            return forwardRaw(browser, method, params, options, () => {
               const retrySessionId = options?.sessionId ?? owner;
               if (retrySessionId === undefined) return undefined;
               const session = sessions.get(retrySessionId);
@@ -233,7 +328,7 @@ export function createMcpServer(deps: McpServerDeps): {
     originPolicy,
     sessionRegistry: sessions,
     policyStore: policy,
-    plugins: createHostToolPlugins(),
+    plugins: createHostToolPlugins(deps.browsers),
   });
 
   const app = new Hono<AppEnv>();
@@ -510,6 +605,41 @@ async function handleRequest(
       },
     };
   }
+}
+
+function noBrowserConnected(): ToolResult {
+  return {
+    ok: false,
+    error: {
+      code: "extension_unreachable",
+      message: "Chrome extension is not connected. Is Chrome open with the fn-browser extension enabled?",
+    },
+  };
+}
+
+function browserUnreachable(browser: string): ToolResult {
+  return {
+    ok: false,
+    error: {
+      code: "extension_unreachable",
+      message: `Browser ${browser} is not connected. Is that Chrome profile open with the fn-browser extension enabled?`,
+    },
+  };
+}
+
+function crossBrowserTab(tabId: number, holder: string, browser: string | null): ToolResult {
+  return {
+    ok: false,
+    error: {
+      code: "cross_browser_tab",
+      message: `tab ${tabId} is in browser ${holder} but this session drives ${browser}; start a session with browser "${holder}" to use it.`,
+      details: { browser: holder },
+    },
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 function requestCancelledResult(): ToolResult {

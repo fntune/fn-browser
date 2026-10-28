@@ -39,6 +39,10 @@ export interface TransportRequestOptions {
   sessionId?: SessionId;
 }
 
+export type BrowserSelection =
+  | { ok: true; browser: string | null }
+  | { ok: false; error: { code: string; message: string } };
+
 export interface TransportBridge {
   sendToExtension(
     method: string,
@@ -48,6 +52,11 @@ export interface TransportBridge {
   readonly isConnected: boolean;
   /** Optional bounded reconnect wait used only for replay-safe tools. */
   waitUntilConnected?(signal?: AbortSignal): Promise<boolean>;
+  /**
+   * Pick the browser (Chrome profile) a new session drives; `requested` is the
+   * caller's `browser` argument. `browser: null` defers the choice to first use.
+   */
+  selectBrowser?(requested: string | undefined): BrowserSelection;
 }
 
 export interface CallToolContext {
@@ -724,9 +733,14 @@ async function handleSessionTool(
             },
           };
         }
+        const requested =
+          typeof args.browser === "string" && args.browser.length > 0 ? args.browser : undefined;
+        const selection = bridge.selectBrowser?.(requested) ?? { ok: true, browser: null };
+        if (!selection.ok) return selection;
         const session = sessions.start({
           name: args.name as string | undefined,
           color: args.color as ChromeTabGroupColor | undefined,
+          browser: selection.browser,
           ...(context?.principalId ? { ownerPrincipalId: context.principalId } : {}),
         });
         return {
@@ -735,6 +749,7 @@ async function handleSessionTool(
             sessionId: session.id,
             name: session.name,
             color: session.color,
+            browser: session.browser,
             tabGroupId: session.tabGroupId,
             windowId: session.windowId,
           },
@@ -771,6 +786,7 @@ async function handleSessionTool(
             sessionId: session.id,
             name: session.name,
             color: session.color,
+            browser: session.browser,
             tabGroupId: session.tabGroupId,
             windowId: session.windowId,
             createdAt: session.createdAt.toISOString(),
@@ -800,6 +816,7 @@ async function handleSessionTool(
               sessionId: s.id,
               name: s.name,
               color: s.color,
+              browser: s.browser,
               tabGroupId: s.tabGroupId,
               createdAt: s.createdAt.toISOString(),
               lastHeartbeat: s.lastHeartbeat.toISOString(),

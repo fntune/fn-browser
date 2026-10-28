@@ -37,6 +37,17 @@ the tagged source — the release notes link the exact run), verify with
 `shasum -c SHA256SUMS --ignore-missing`, unzip somewhere permanent, and follow
 `SETUP.md` inside.
 
+## Multiple Chrome profiles
+
+Load the extension in each profile you want Claude to drive. With the daemon
+(`fn-browserd`) running, every profile stays connected at once, identified by
+a per-profile id and labeled with the profile's signed-in email.
+`list_browsers` shows them; each session drives one profile, picked by
+`start`'s `browser` argument or, when omitted, the profile focused most
+recently. `list_tabs` with `scope: "all"` spans every profile. The on-demand
+shim serves one profile at a time (each profile spawns its own host and only
+one can bind `:7722`), so use the daemon for several profiles.
+
 ## Security model
 
 - **MCP-scoped bearer auth**: `127.0.0.1:7722/mcp/*` requires the token the

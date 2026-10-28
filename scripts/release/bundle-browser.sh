@@ -120,6 +120,9 @@ Before installing the daemon: quit Chrome (or disable the fn-browser extension),
 run the command above, then reopen Chrome — the extension auto-detects the
 running daemon and connects to it instead of spawning a shim.
 
+The daemon is also what lets several Chrome profiles connect at once (load the
+extension in each). The on-demand shim serves one profile at a time.
+
 ## Security notes
 
 - The MCP endpoint (\`127.0.0.1:7722/mcp/browser\`) requires your bearer token,

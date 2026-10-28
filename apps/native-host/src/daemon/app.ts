@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import type { Context, MiddlewareHandler, Next } from "hono";
 import type { TabId } from "@fntune/browser/cdp";
 import { PERMISSIVE_ORIGIN_POLICY, REMOTE_ORIGIN_POLICY, type McpServer } from "@fntune/browser/mcp";
-import type { ExtensionBridge } from "../extension-bridge.js";
+import type { Browsers } from "../browsers.js";
 import { createMcpServer } from "../mcp-server.js";
 import { createSessionsRouter } from "../routes/sessions.js";
 import { createRateLimitsRouter } from "../routes/rate-limits.js";
@@ -27,7 +27,7 @@ import { resolveExtensionId } from "../extension.js";
 import { HOST_VERSION } from "../version.js";
 
 export interface DaemonAppDeps {
-  extension: ExtensionBridge;
+  browsers: Browsers;
   /** Bind address; identity-header trust requires loopback. */
   bind?: string;
   /** Idle-session reaper interval (ms); off by default (tests). */
@@ -99,7 +99,7 @@ function csrfGuard(extensionId: string | undefined): MiddlewareHandler<AppEnv> {
 }
 
 export function createDaemonApp(deps: DaemonAppDeps): DaemonApp {
-  const { extension } = deps;
+  const { browsers } = deps;
   const bind = deps.bind ?? "127.0.0.1";
   const loopback = isLoopbackBind(bind);
 
@@ -166,7 +166,7 @@ export function createDaemonApp(deps: DaemonAppDeps): DaemonApp {
   const consent = new ConsentRegistry(bus, audit);
 
   const { app: mcpApp, server: mcpServer } = createMcpServer({
-    bridge: extension,
+    browsers,
     consent,
     originPolicy,
   });
@@ -192,7 +192,7 @@ export function createDaemonApp(deps: DaemonAppDeps): DaemonApp {
   }
 
   // Keep session registry in sync with manual Chrome tab/group changes.
-  extension.onEvent((event) => {
+  browsers.onEvent((event) => {
     if (event.topic === "tab_group_changed") {
       const p = event.payload as { tabId: number; groupId: number };
       mcpServer.sessions.reconcileTabGroupChange(p.tabId as unknown as TabId, p.groupId);
@@ -247,8 +247,8 @@ export function createDaemonApp(deps: DaemonAppDeps): DaemonApp {
   app.get("/health", (c) =>
     c.json({
       ok: true,
-      extension_connected: extension.isConnected,
-      extension_version: extension.peerVersion,
+      extension_connected: browsers.isConnected,
+      browsers: browsers.list(),
       host_version: HOST_VERSION,
       active_sessions: mcpServer.sessions.list().length,
     }),

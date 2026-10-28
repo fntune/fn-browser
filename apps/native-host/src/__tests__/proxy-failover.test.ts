@@ -10,6 +10,7 @@ import {
 	ExtensionBridge,
 } from "../extension-bridge.js";
 import { NativeMessagingBridge } from "../native-messaging.js";
+import { browsersOf } from "./fixtures.js";
 
 type FetchCall = {
 	host: string;
@@ -294,10 +295,10 @@ function createHarness(
 	}
 
 	const primary = createDaemonApp({
-		extension: options.primaryBridge ?? stubBridge({ connected: true }),
+		browsers: browsersOf(options.primaryBridge ?? stubBridge({ connected: true })),
 	});
 	const fallback = createDaemonApp({
-		extension: options.fallbackBridge ?? fallbackBridge(),
+		browsers: browsersOf(options.fallbackBridge ?? fallbackBridge()),
 	});
 	daemons.push(primary, fallback);
 

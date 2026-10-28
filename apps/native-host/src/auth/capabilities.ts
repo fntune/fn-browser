@@ -74,6 +74,7 @@ const TOOL_CAPABILITY: Record<string, Capability> = {
   end: "sessions.manage",
   info: "sessions.read",
   list_sessions: "sessions.read",
+  list_browsers: "sessions.read",
   // tabs
   list_tabs: "tabs.read",
   create_tab: "tabs.create",

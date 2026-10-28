@@ -12,6 +12,8 @@ export interface HostHello {
   kind: "hello";
   extensionVersion: string;
   protocolVersion: number;
+  /** Absent from extension builds before per-profile ids. */
+  browser?: { id: string; label: string };
 }
 
 export interface HostHelloAck {

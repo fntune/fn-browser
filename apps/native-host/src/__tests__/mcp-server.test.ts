@@ -5,6 +5,7 @@ import type { SessionId, TabId } from "@fntune/browser/cdp";
 import { createMcpServer, REQUEST_TIMEOUT_MS, requestTimeoutMsFromEnv } from "../mcp-server.js";
 import { ExtensionBridge, type CommandResult, type CommandFailure } from "../extension-bridge.js";
 import { NativeMessagingBridge } from "../native-messaging.js";
+import { browsersOf } from "./fixtures.js";
 
 function makeBridge(overrides: Partial<ExtensionBridge> = {}): ExtensionBridge {
   const input = new PassThrough();
@@ -47,7 +48,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
     const previous = process.env.FN_BROWSER_SESSION_IDLE_MS;
     try {
       process.env.FN_BROWSER_SESSION_IDLE_MS = "0";
-      const { sessions } = createMcpServer({ bridge: makeBridge() });
+      const { sessions } = createMcpServer({ browsers: browsersOf(makeBridge()) });
       const session = sessions.start({ name: "long-lived" });
       (session as { lastHeartbeat: Date }).lastHeartbeat = new Date(0);
 
@@ -63,7 +64,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
   });
 
   it("responds to initialize with server metadata", async () => {
-    const { app } = createMcpServer({ bridge: makeBridge() });
+    const { app } = createMcpServer({ browsers: browsersOf(makeBridge()) });
     const res = await app.request("/", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -77,7 +78,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
   });
 
   it("tools/list returns the full catalog", async () => {
-    const { app } = createMcpServer({ bridge: makeBridge() });
+    const { app } = createMcpServer({ browsers: browsersOf(makeBridge()) });
     const res = await app.request("/", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -103,7 +104,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
       },
     } as unknown as Partial<ExtensionBridge>);
 
-    const { app } = createMcpServer({ bridge });
+    const { app } = createMcpServer({ browsers: browsersOf(bridge) });
     const res = await app.request("/", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -135,7 +136,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
       }),
     } as unknown as Partial<ExtensionBridge>);
 
-    const { app } = createMcpServer({ bridge });
+    const { app } = createMcpServer({ browsers: browsersOf(bridge) });
     const res = await app.request("/", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -164,7 +165,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
       },
     } as unknown as Partial<ExtensionBridge>);
 
-    const { app } = createMcpServer({ bridge });
+    const { app } = createMcpServer({ browsers: browsersOf(bridge) });
     const res = await app.request("/", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -195,7 +196,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
         result: null,
       }),
     } as unknown as Partial<ExtensionBridge>);
-    const { app } = createMcpServer({ bridge });
+    const { app } = createMcpServer({ browsers: browsersOf(bridge) });
 
     const startRes = await app.request("/", {
       method: "POST",
@@ -248,7 +249,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
 
   it("ghost-restores a header session id after daemon restart", async () => {
     const ghostSessionId = "ghost-restore-test" as SessionId;
-    const { app, sessions } = createMcpServer({ bridge: makeBridge() });
+    const { app, sessions } = createMcpServer({ browsers: browsersOf(makeBridge()) });
     expect(sessions.has(ghostSessionId)).toBe(false);
 
     const res = await app.request("/", {
@@ -280,7 +281,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
 
   it("ghost-restores a session id supplied as a tool argument", async () => {
     const ghostSessionId = "ghost-argument-session" as SessionId;
-    const { app, sessions } = createMcpServer({ bridge: makeBridge() });
+    const { app, sessions } = createMcpServer({ browsers: browsersOf(makeBridge()) });
 
     const response = await app.request("/", {
       method: "POST",
@@ -323,7 +324,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
         return { ok: true, result: { clicked: true } };
       },
     } as unknown as Partial<ExtensionBridge>);
-    const { app } = createMcpServer({ bridge });
+    const { app } = createMcpServer({ browsers: browsersOf(bridge) });
 
     const responsePromise = app.request("/", {
       method: "POST",
@@ -371,7 +372,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
         return { ok: true, result: { clicked: true } };
       },
     } as unknown as Partial<ExtensionBridge>);
-    const { app } = createMcpServer({ bridge });
+    const { app } = createMcpServer({ browsers: browsersOf(bridge) });
     const controller = new AbortController();
     const responsePromise = app.request(
       new Request("http://localhost/", {
@@ -421,7 +422,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
     } as unknown as Partial<ExtensionBridge>);
     Object.defineProperty(bridge, "isConnected", { get: () => connected });
 
-    const { app } = createMcpServer({ bridge });
+    const { app } = createMcpServer({ browsers: browsersOf(bridge) });
     const res = await app.request("/", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -459,7 +460,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
       },
     } as unknown as Partial<ExtensionBridge>);
     Object.defineProperty(bridge, "isConnected", { get: () => connected });
-    const { server, sessions } = createMcpServer({ bridge });
+    const { server, sessions } = createMcpServer({ browsers: browsersOf(bridge) });
     const sessionId = "owned-session" as SessionId;
     const nextSessionId = "next-session" as SessionId;
     const tabId = 7 as TabId;
@@ -499,7 +500,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
       },
     } as unknown as Partial<ExtensionBridge>);
     Object.defineProperty(bridge, "isConnected", { get: () => connected });
-    const { server, sessions } = createMcpServer({ bridge });
+    const { server, sessions } = createMcpServer({ browsers: browsersOf(bridge) });
     const sessionId = "listed-session" as SessionId;
     sessions.create({ id: sessionId, ownerPrincipalId: "alice" });
     sessions.bindTabGroup(sessionId, 10, 1);
@@ -542,7 +543,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
       connected = true;
     }, 80);
 
-    const { app } = createMcpServer({ bridge });
+    const { app } = createMcpServer({ browsers: browsersOf(bridge) });
     const res = await app.request("/", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -570,7 +571,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
       },
     } as unknown as Partial<ExtensionBridge>);
 
-    const { app } = createMcpServer({ bridge });
+    const { app } = createMcpServer({ browsers: browsersOf(bridge) });
     const res = await app.request("/", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -592,7 +593,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
   });
 
   it("returns JSON-RPC error for unknown methods", async () => {
-    const { app } = createMcpServer({ bridge: makeBridge() });
+    const { app } = createMcpServer({ browsers: browsersOf(makeBridge()) });
     const res = await app.request("/", {
       method: "POST",
       headers: { "content-type": "application/json" },

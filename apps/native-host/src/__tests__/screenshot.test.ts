@@ -11,6 +11,7 @@ import { createMcpServer } from "../mcp-server.js";
 import { ExtensionBridge, type CommandResult, type CommandFailure } from "../extension-bridge.js";
 import { NativeMessagingBridge } from "../native-messaging.js";
 import { saveScreenshot } from "../observability/screenshot-store.js";
+import { browsersOf } from "./fixtures.js";
 
 // HOME is redirected to a tmp dir by src/__tests__/setup.ts.
 
@@ -45,7 +46,7 @@ async function callScreenshot(args: Record<string, unknown>): Promise<{
       };
     },
   });
-  const { app } = createMcpServer({ bridge });
+  const { app } = createMcpServer({ browsers: browsersOf(bridge) });
 
   // No X-Session-Id: session-ownership enforcement only fires when a
   // sessionId is present, so omitting it keeps this test isolated from

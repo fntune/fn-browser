@@ -14,6 +14,7 @@
  */
 
 import {
+  type BrowserIdentity,
   type HostHelloAck,
   type NativeMessage,
   newMessageId,
@@ -46,6 +47,8 @@ export interface WsPortConfig {
   url: string;
   /** Shared secret; appended as `?token=`. Empty for loopback no-auth. */
   token: string;
+  /** This profile's identity, sent in the hello. */
+  browser: BrowserIdentity;
   /** Injectable for tests; defaults to the global WebSocket. */
   WebSocketImpl?: typeof WebSocket;
 }
@@ -229,6 +232,7 @@ export class WsPort {
           ? chrome.runtime.getManifest().version
           : "0.0.0",
       protocolVersion: PROTOCOL_VERSION,
+      browser: this.config.browser,
     });
   }
 

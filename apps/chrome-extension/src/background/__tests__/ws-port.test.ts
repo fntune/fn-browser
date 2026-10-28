@@ -69,7 +69,12 @@ function makeEvents() {
 
 function newPort(events: NativePortEvents): WsPort {
   return new WsPort(
-    { url: "ws://d/ws", token: "tok", WebSocketImpl: MockWebSocket as unknown as typeof WebSocket },
+    {
+      url: "ws://d/ws",
+      token: "tok",
+      browser: { id: "a1b2c3d4", label: "me@example.com" },
+      WebSocketImpl: MockWebSocket as unknown as typeof WebSocket,
+    },
     events,
   );
 }
@@ -89,6 +94,7 @@ describe("WsPort", () => {
     const ws = MockWebSocket.last!;
     ws.doOpen();
     expect(ws.sentKinds()).toContain("hello");
+    expect(JSON.parse(ws.sent[0]!).browser).toEqual({ id: "a1b2c3d4", label: "me@example.com" });
     expect(p.isConnected).toBe(false); // not until the ack
     ws.recv(ACK);
     expect(p.isConnected).toBe(true);

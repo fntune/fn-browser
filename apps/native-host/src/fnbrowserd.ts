@@ -2,8 +2,9 @@
 
 import { timingSafeEqual } from "node:crypto";
 import type { ServerWebSocket } from "bun";
+import { Browsers } from "./browsers.js";
 import { ExtensionBridge } from "./extension-bridge.js";
-import { SwitchableSocketTransport } from "./transport.js";
+import { SocketTransport } from "./transport.js";
 import { createDaemonApp } from "./daemon/app.js";
 import { isLoopbackBind } from "./daemon/bind.js";
 import { loadEnvFile } from "./env-file.js";
@@ -56,12 +57,12 @@ export function evaluateExtensionUpgrade(
 function main(): void {
   loadEnvFile();
 
-  const transport = new SwitchableSocketTransport();
-  const extension = new ExtensionBridge(transport, 10_000); // app-level ping for WS liveness
+  const browsers = new Browsers();
+  const connections = new Map<ServerWebSocket, { transport: SocketTransport; bridge: ExtensionBridge }>();
 
   const port = readPort();
   const hostname = process.env.FN_BROWSER_BIND ?? "127.0.0.1";
-  const { app } = createDaemonApp({ extension, bind: hostname, reapIntervalMs: 5 * 60_000 });
+  const { app } = createDaemonApp({ browsers, bind: hostname, reapIntervalMs: 5 * 60_000 });
 
   const extensionToken = process.env.FN_BROWSER_EXTENSION_TOKEN;
   // Pin exact extension — prefix-only would let any installed extension impersonate.
@@ -93,20 +94,21 @@ function main(): void {
       return app.fetch(req);
     },
     websocket: {
+      // One bridge per socket; Browsers keys it by profile once its hello arrives.
       open(ws: ServerWebSocket) {
-        if (transport.hasSocket) extension.markDisconnected();
-        transport.bind(ws);
-        console.error("[fn-browserd] extension connected over WebSocket");
+        const transport = new SocketTransport(ws);
+        const bridge = new ExtensionBridge(transport, 10_000); // app-level ping for WS liveness
+        browsers.track(bridge);
+        connections.set(ws, { transport, bridge });
       },
       message(ws: ServerWebSocket, message: string | Buffer) {
-        transport.receive(ws, typeof message === "string" ? message : message.toString());
+        connections.get(ws)?.transport.receive(typeof message === "string" ? message : message.toString());
       },
       close(ws: ServerWebSocket) {
-        // Ignore late close from a superseded socket.
-        if (transport.unbind(ws)) {
-          extension.markDisconnected();
-          console.error("[fn-browserd] extension WebSocket closed");
-        }
+        const connection = connections.get(ws);
+        connections.delete(ws);
+        connection?.bridge.markDisconnected();
+        connection?.bridge.dispose();
       },
     },
   });

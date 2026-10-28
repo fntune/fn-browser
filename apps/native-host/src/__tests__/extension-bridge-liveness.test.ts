@@ -1,8 +1,8 @@
 /**
- * Liveness + command-deadline behavior of ExtensionBridge over the switchable WS
+ * Liveness + command-deadline behavior of ExtensionBridge over the WebSocket
  * transport. These exercise the silence watchdog, the connected/disconnected
- * timeout distinction, the monotonic-clock sleep/wake property, and the
- * superseded-socket-generation guard — the cases the prior code left untested
+ * timeout distinction, and the monotonic-clock sleep/wake property — the cases
+ * the prior code left untested
  * (every other suite uses pingIntervalMs=0, so the watchdog never ran).
  *
  * The monotonic clock is INJECTED (`now`) so we can drive elapsed time
@@ -13,7 +13,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { SwitchableSocketTransport, type OutboundSocket } from "../transport.js";
+import { SocketTransport, type OutboundSocket } from "../transport.js";
 import { ExtensionBridge } from "../extension-bridge.js";
 
 const PING_INTERVAL_MS = 10_000;
@@ -67,11 +67,10 @@ describe("ExtensionBridge liveness watchdog", () => {
   });
 
   it("fails an in-flight command as extension_unreachable when the link goes silent (watchdog beats the deadline)", async () => {
-    const transport = new SwitchableSocketTransport();
-    const bridge = new ExtensionBridge(transport, PING_INTERVAL_MS, now);
     const sock = fakeSocket();
-    transport.bind(sock);
-    transport.receive(sock, hello("1.0.0"));
+    const transport = new SocketTransport(sock);
+    const bridge = new ExtensionBridge(transport, PING_INTERVAL_MS, now);
+    transport.receive(hello("1.0.0"));
     expect(bridge.isConnected).toBe(true);
 
     const inflight = bridge.sendCommand("read_page", { tabId: 1 }); // deadline = 20s
@@ -84,15 +83,13 @@ describe("ExtensionBridge liveness watchdog", () => {
     expect(res).toMatchObject({ ok: false, error: { code: "extension_unreachable" } });
     expect(bridge.isConnected).toBe(false);
     expect(sock.closed).toBe(true);
-    expect(transport.hasSocket).toBe(false);
   });
 
   it("gives a delayed ping its full pong grace after an event-loop stall", () => {
-    const transport = new SwitchableSocketTransport();
     const sock = fakeSocket();
+    const transport = new SocketTransport(sock);
     const bridge = new ExtensionBridge(transport, PING_INTERVAL_MS, now);
-    transport.bind(sock);
-    transport.receive(sock, hello("1.0.0"));
+    transport.receive(hello("1.0.0"));
 
     // Simulate the JS event loop being blocked: monotonic time advances before
     // any overdue timer callback gets a chance to run. The delayed ping fires
@@ -101,23 +98,22 @@ describe("ExtensionBridge liveness watchdog", () => {
     vi.advanceTimersByTime(20_000);
     expect(bridge.isConnected).toBe(true);
 
-    transport.receive(sock, pong());
+    transport.receive(pong());
     expect(bridge.isConnected).toBe(true);
   });
 
   it("does NOT disconnect a healthy idle link (pongs keep arriving every ping interval)", async () => {
     // The round-4 false-disconnect blocker: a 10s healthy inter-pong gap must
     // never trip the 15s threshold.
-    const transport = new SwitchableSocketTransport();
     const sent: Frame[] = [];
     const sock = fakeSocket(sent);
+    const transport = new SocketTransport(sock);
     const bridge = new ExtensionBridge(transport, PING_INTERVAL_MS, now);
-    transport.bind(sock);
-    transport.receive(sock, hello("1.0.0"));
+    transport.receive(hello("1.0.0"));
 
     for (let i = 0; i < 6; i++) {
       advance(PING_INTERVAL_MS); // ping fires
-      transport.receive(sock, pong()); // extension answers — resets the silence clock
+      transport.receive(pong()); // extension answers — resets the silence clock
     }
 
     expect(bridge.isConnected).toBe(true);
@@ -128,16 +124,15 @@ describe("ExtensionBridge liveness watchdog", () => {
   it("times out a slow-but-alive op as cdp_timeout (connected), not extension_unreachable", async () => {
     // Preserves the policy-store consent-timeout consumer, which matches
     // cdp_timeout exactly.
-    const transport = new SwitchableSocketTransport();
     const sock = fakeSocket();
+    const transport = new SocketTransport(sock);
     const bridge = new ExtensionBridge(transport, PING_INTERVAL_MS, now);
-    transport.bind(sock);
-    transport.receive(sock, hello("1.0.0"));
+    transport.receive(hello("1.0.0"));
 
     const slow = bridge.sendCommand("navigate", { tabId: 1, url: "https://x" }); // deadline 20s
 
     advance(PING_INTERVAL_MS);
-    transport.receive(sock, pong()); // link stays alive at t=10s
+    transport.receive(pong()); // link stays alive at t=10s
     advance(11_000); // t=21s: deadline (20s) reached while the link is alive
 
     const res = await slow;
@@ -147,11 +142,10 @@ describe("ExtensionBridge liveness watchdog", () => {
   });
 
   it("on wake from a long sleep with a dead link, the in-flight command fails as extension_unreachable, never a spurious cdp_timeout", async () => {
-    const transport = new SwitchableSocketTransport();
     const sock = fakeSocket();
+    const transport = new SocketTransport(sock);
     const bridge = new ExtensionBridge(transport, PING_INTERVAL_MS, now);
-    transport.bind(sock);
-    transport.receive(sock, hello("1.0.0"));
+    transport.receive(hello("1.0.0"));
 
     const inflight = bridge.sendCommand("read_page", { tabId: 1 }); // deadline 20s
 
@@ -166,34 +160,11 @@ describe("ExtensionBridge liveness watchdog", () => {
     expect(bridge.isConnected).toBe(false);
   });
 
-  it("fails a pending command whose socket generation was superseded", async () => {
-    // Defense-in-depth invariant: a command never outlives its socket, even if a
-    // future code path flips the socket without calling markDisconnected (which
-    // is the primary path in production — see fnbrowserd's WS open handler).
-    const transport = new SwitchableSocketTransport();
-    const bridge = new ExtensionBridge(transport, PING_INTERVAL_MS, now);
-    const a = fakeSocket();
-    transport.bind(a); // gen 1
-    transport.receive(a, hello("1.0.0"));
-    const inflight = bridge.sendCommand("read_page", { tabId: 1 }); // captures gen 1
-
-    const b = fakeSocket();
-    transport.bind(b); // gen 2, supersedes a — but NO markDisconnected
-    transport.receive(b, hello("1.0.1")); // re-handshake so the link reads alive
-
-    advance(2_000); // one poll tick
-
-    const res = await inflight;
-    expect(res).toMatchObject({ ok: false, error: { code: "extension_unreachable" } });
-    expect((res as { error: { message: string } }).error.message).toMatch(/superseded/i);
-  });
-
   it("stops its background poll once disconnected and idle (no leaked timers)", () => {
-    const transport = new SwitchableSocketTransport();
-    const bridge = new ExtensionBridge(transport, PING_INTERVAL_MS, now);
     const sock = fakeSocket();
-    transport.bind(sock);
-    transport.receive(sock, hello("1.0.0"));
+    const transport = new SocketTransport(sock);
+    const bridge = new ExtensionBridge(transport, PING_INTERVAL_MS, now);
+    transport.receive(hello("1.0.0"));
     expect(vi.getTimerCount()).toBeGreaterThan(0); // ping + poll armed
 
     bridge.markDisconnected();

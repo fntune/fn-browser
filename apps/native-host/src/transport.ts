@@ -1,11 +1,9 @@
-/** Host↔extension MessageTransport implementations (stdio shim, switchable WebSocket). */
+/** Host↔extension MessageTransport implementations (stdio shim, per-connection WebSocket). */
 
 export interface MessageTransport {
   onMessage(handler: (message: unknown) => void): () => void;
   send(message: unknown): void;
-  /** Socket generation — bumped on bind/unbind for superseded-command detection. */
-  generation?(): number;
-  /** Actively tear down the current link after a liveness failure. */
+  /** Actively tear down the link after a liveness failure or a superseding connection. */
   disconnect?(): void;
 }
 
@@ -15,66 +13,30 @@ export interface OutboundSocket {
   close?(): void;
 }
 
-/** WebSocket transport rebindable across reconnects. */
-export class SwitchableSocketTransport implements MessageTransport {
-  private socket: OutboundSocket | null = null;
+/** One extension WebSocket; the daemon creates one per connection. */
+export class SocketTransport implements MessageTransport {
   private readonly handlers = new Set<(message: unknown) => void>();
-  /** Bumped on bind/unbind so bridge can detect superseded commands. */
-  private gen = 0;
+  private open = true;
 
-  generation(): number {
-    return this.gen;
-  }
+  constructor(private readonly socket: OutboundSocket) {}
 
-  /** Make `socket` the active one. A superseded socket is closed so it can't
-   * keep feeding frames. */
-  bind(socket: OutboundSocket): void {
-    const prev = this.socket;
-    this.socket = socket;
-    this.gen++;
-    if (prev && prev !== socket) {
-      try {
-        prev.close?.();
-      } catch {
-        /* best-effort */
-      }
-    }
-  }
-
-  /** Unbind only if still active — guards late close from superseded socket. */
-  unbind(socket?: OutboundSocket): boolean {
-    if (!socket || this.socket === socket) {
-      const had = this.socket !== null;
-      this.socket = null;
-      if (had) this.gen++;
-      return had;
-    }
-    return false;
-  }
-
-  get hasSocket(): boolean {
-    return this.socket !== null;
+  send(message: unknown): void {
+    if (this.open) this.socket.send(JSON.stringify(message));
   }
 
   disconnect(): void {
-    const socket = this.socket;
-    if (!socket) return;
-    this.socket = null;
-    this.gen++;
+    if (!this.open) return;
+    this.open = false;
     try {
-      socket.close?.();
+      this.socket.close?.();
     } catch {
       /* best-effort */
     }
   }
 
-  send(message: unknown): void {
-    this.socket?.send(JSON.stringify(message));
-  }
-
-  /** Drop frames from non-active sockets. */
-  receive(socket: OutboundSocket, raw: string): void {
-    if (socket !== this.socket) return;
+  /** Dispatch one inbound frame; frames after disconnect are dropped. */
+  receive(raw: string): void {
+    if (!this.open) return;
     let message: unknown;
     try {
       message = JSON.parse(raw);

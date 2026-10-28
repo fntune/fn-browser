@@ -2,7 +2,7 @@
 
 Browser automation primitives and MCP server for Chrome via `chrome.debugger`.
 
-Architecture: a MV3 Chrome extension owns the CDP session (through `chrome.debugger`). A Bun native-messaging host exposes browser primitives as MCP tools over HTTP on `localhost:7722`. The user's default Chrome profile is used — no launch flags, no dedicated profile.
+Architecture: a MV3 Chrome extension owns the CDP session (through `chrome.debugger`). A Bun native-messaging host exposes browser primitives as MCP tools over HTTP on `localhost:7722`. It runs in the user's normal Chrome profile(s) — no launch flags, no dedicated profile.
 
 ## Subpath exports
 

@@ -17,6 +17,7 @@ import {
   resolveTransportConfig,
 } from "./transport-config.js";
 import { createCommandRouter } from "./command-router.js";
+import { resolveBrowserIdentity } from "./identity.js";
 import { consentQueue } from "./consent-queue.js";
 import {
   addOrigin as allowlistAdd,
@@ -25,7 +26,7 @@ import {
 } from "./allowlist.js";
 import { installTabGroupEventForwarder } from "./session-group.js";
 import type { NativeMessage, PanelToSwMessage, SwToPanelMessage } from "../shared/protocol.js";
-import { SIDEPANEL_PORT_NAME } from "../shared/protocol.js";
+import { SIDEPANEL_PORT_NAME, newMessageId } from "../shared/protocol.js";
 
 // Attached-tab count tracked locally so the side panel can display it. The
 // command router doesn't expose this directly — we watch chrome.debugger
@@ -82,6 +83,14 @@ const events: NativePortEvents = {
   onConnect: () => {
     console.log("[fn-browser] host transport connected");
     pushHostStatus();
+    void chrome.windows
+      .getLastFocused()
+      .then((window) => {
+        if (window.focused) sendFocused();
+      })
+      .catch(() => {
+        /* no windows open */
+      });
   },
   onDisconnect: (reason) => {
     console.warn("[fn-browser] host transport disconnected:", reason);
@@ -214,6 +223,15 @@ installTabGroupEventForwarder((event) => {
   port?.send(event as NativeMessage);
 });
 
+// With several profiles connected, the host defaults new sessions to the one
+// focused last. Each profile's extension only sees its own windows.
+function sendFocused(): void {
+  port?.send({ id: newMessageId(), kind: "event", topic: "browser_focused", payload: {} });
+}
+chrome.windows.onFocusChanged.addListener((windowId) => {
+  if (windowId !== chrome.windows.WINDOW_ID_NONE) sendFocused();
+});
+
 /** Build the daemon-config broadcast for the side panel. */
 async function daemonConfigMessage(): Promise<SwToPanelMessage> {
   return { topic: "daemon:config", ...daemonConfigSnapshot(await resolveTransportConfig()) };
@@ -228,14 +246,14 @@ async function daemonConfigMessage(): Promise<SwToPanelMessage> {
 // a remote/tailnet daemon). Must run before any command can arrive — the SW's
 // startup kickoff.
 async function initTransport(): Promise<void> {
-  const cfg = await resolveTransportConfig();
+  const [cfg, browser] = await Promise.all([resolveTransportConfig(), resolveBrowserIdentity()]);
   if (cfg.mode === "ws") {
-    port = new WsPort({ url: cfg.url, token: cfg.token }, events);
+    port = new WsPort({ url: cfg.url, token: cfg.token, browser }, events);
   } else if (cfg.mode === "shim") {
-    port = new NativePort(events);
+    port = new NativePort(events, browser);
   } else {
     const wsUrl = await detectLocalDaemon();
-    port = wsUrl ? new WsPort({ url: wsUrl, token: "" }, events) : new NativePort(events);
+    port = wsUrl ? new WsPort({ url: wsUrl, token: "", browser }, events) : new NativePort(events, browser);
     console.log(`[fn-browser] auto-detected transport: ${wsUrl ? "websocket daemon" : "native-messaging shim"}`);
   }
   port.connect();

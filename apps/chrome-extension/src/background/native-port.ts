@@ -11,6 +11,7 @@
  */
 
 import {
+  type BrowserIdentity,
   type HostToExtensionCommand,
   type HostHelloAck,
   PROTOCOL_VERSION,
@@ -35,7 +36,10 @@ export class NativePort {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private handshakeDone = false;
 
-  constructor(private readonly events: NativePortEvents) {}
+  constructor(
+    private readonly events: NativePortEvents,
+    private readonly browser: BrowserIdentity,
+  ) {}
 
   connect(): void {
     if (this.port) return;
@@ -66,6 +70,7 @@ export class NativePort {
       kind: "hello",
       extensionVersion: chrome.runtime.getManifest().version,
       protocolVersion: PROTOCOL_VERSION,
+      browser: this.browser,
     };
     this.rawSend(hello);
   }

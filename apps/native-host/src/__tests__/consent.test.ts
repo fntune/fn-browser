@@ -15,6 +15,7 @@ import type { AppEnv } from "../auth/capabilities.js";
 import { createAuthMiddleware } from "../auth/middleware.js";
 import { parseAuthTokens } from "../auth/tokens.js";
 import type { ToolResult } from "@fntune/browser/mcp";
+import { browsersOf } from "./fixtures.js";
 
 const noopAudit = { append: async () => {} } as unknown as AuditLog;
 
@@ -305,7 +306,7 @@ describe("daemon consent integration through createMcpServer", () => {
     bus.subscribeAll((_c, e) => topics.push(e.topic));
     const registry = new ConsentRegistry(bus, noopAudit);
     const { app } = createMcpServer({
-      bridge: bridgeReplying(() => ({ ok: true, result: { choice: "allow" } })),
+      browsers: browsersOf(bridgeReplying(() => ({ ok: true, result: { choice: "allow" } }))),
       consent: registry,
     });
 

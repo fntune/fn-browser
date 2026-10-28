@@ -5,6 +5,7 @@ import "./stdout-safety.js";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { Browsers } from "./browsers.js";
 import { ExtensionBridge } from "./extension-bridge.js";
 import { NativeMessagingBridge } from "./native-messaging.js";
 import { createDaemonApp } from "./daemon/app.js";
@@ -37,13 +38,15 @@ const HTTP_PORT = 7722;
 function main(): void {
   const native = new NativeMessagingBridge(process.stdin, process.stdout);
   const extension = new ExtensionBridge(native);
+  const browsers = new Browsers();
+  browsers.track(extension);
 
   native.onClose(() => {
     process.exit(0);
   });
 
   try {
-    const { app } = createDaemonApp({ extension });
+    const { app } = createDaemonApp({ browsers });
 
     Bun.serve({
       hostname: "127.0.0.1",

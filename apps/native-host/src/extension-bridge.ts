@@ -5,6 +5,7 @@ import {
   type ExtensionToHostEvent,
   type ExtensionToHostError,
   type ExtensionToHostResponse,
+  type HostHello,
   type HostHelloAck,
   newMessageId,
   PROTOCOL_VERSION,
@@ -27,9 +28,27 @@ type PendingCommand = {
   timeoutMs: number;
   /** Monotonic deadline; checked by poll (not setTimeout — immune to clock suspend). */
   deadlineAtMs: number;
-  /** Socket generation at send — superseded socket fails as unreachable. */
-  generation: number;
 };
+
+/** The Chrome profile behind a connection, as reported in the extension's hello. */
+export interface BrowserIdentity {
+  id: string;
+  label: string;
+}
+
+/** Identity for extension builds that predate per-profile ids (one shared slot). */
+export const LEGACY_BROWSER: BrowserIdentity = { id: "chrome", label: "chrome" };
+
+const BROWSER_ID = /^[A-Za-z0-9_-]{1,64}$/;
+const MAX_LABEL_LENGTH = 200;
+
+function parseBrowserIdentity(value: unknown): BrowserIdentity {
+  if (!isRecord(value) || typeof value.id !== "string" || !BROWSER_ID.test(value.id)) {
+    return LEGACY_BROWSER;
+  }
+  const label = typeof value.label === "string" ? value.label.trim().slice(0, MAX_LABEL_LENGTH) : "";
+  return { id: value.id, label: label || value.id };
+}
 
 /** Default command timeout; long ops pass explicit timeoutMs. WS liveness fails faster. */
 const DEFAULT_COMMAND_TIMEOUT_MS = 20_000;
@@ -45,8 +64,10 @@ function monotonicNowMs(): number {
 export class ExtensionBridge {
   private readonly pending = new Map<string, PendingCommand>();
   private readonly eventHandlers = new Set<(event: ExtensionToHostEvent) => void>();
+  private readonly statusHandlers = new Set<(connected: boolean) => void>();
   private connected = false;
   private extensionVersion: string | null = null;
+  private identity: BrowserIdentity = LEGACY_BROWSER;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private awaitingPongSinceMs: number | null = null;
@@ -72,6 +93,18 @@ export class ExtensionBridge {
     return this.extensionVersion;
   }
 
+  get browser(): BrowserIdentity {
+    return this.identity;
+  }
+
+  /** Fires on handshake (true) and on link loss (false). */
+  onStatus(handler: (connected: boolean) => void): () => void {
+    this.statusHandlers.add(handler);
+    return () => {
+      this.statusHandlers.delete(handler);
+    };
+  }
+
   /** Guards against duplicate tab-reconcile handler registration per reconnect. */
   get eventHandlerCount(): number {
     return this.eventHandlers.size;
@@ -79,6 +112,7 @@ export class ExtensionBridge {
 
   /** Fast-fail in-flight commands on link loss. */
   markDisconnected(): void {
+    const wasConnected = this.connected;
     this.bridge.disconnect?.();
     this.connected = false;
     this.extensionVersion = null;
@@ -92,6 +126,7 @@ export class ExtensionBridge {
     }
     this.pending.clear();
     this.updatePoll();
+    if (wasConnected) this.emitStatus(false);
   }
 
   /** Clear timers for shutdown / test teardown. */
@@ -127,7 +162,6 @@ export class ExtensionBridge {
         method,
         timeoutMs,
         deadlineAtMs: this.now() + timeoutMs,
-        generation: this.bridge.generation?.() ?? 0,
       });
       this.updatePoll();
       try {
@@ -161,7 +195,7 @@ export class ExtensionBridge {
     this.awaitingPongSinceMs = null; // any inbound frame proves liveness
     switch (message.kind) {
       case "hello":
-        this.handleHello(message as unknown as { id: string; extensionVersion: string; protocolVersion: number });
+        this.handleHello(message as unknown as HostHello);
         return;
       case "response":
         this.handleResponse(message as unknown as ExtensionToHostResponse | ExtensionToHostError);
@@ -174,9 +208,10 @@ export class ExtensionBridge {
     }
   }
 
-  private handleHello(hello: { id: string; extensionVersion: string; protocolVersion: number }): void {
+  private handleHello(hello: HostHello): void {
     this.connected = true;
     this.extensionVersion = hello.extensionVersion;
+    this.identity = parseBrowserIdentity(hello.browser);
     const ack: HostHelloAck = {
       id: hello.id,
       kind: "hello_ack",
@@ -186,6 +221,17 @@ export class ExtensionBridge {
     this.bridge.send(ack);
     this.startPing();
     this.updatePoll();
+    this.emitStatus(true);
+  }
+
+  private emitStatus(connected: boolean): void {
+    for (const handler of this.statusHandlers) {
+      try {
+        handler(connected);
+      } catch (err) {
+        console.error("[extension-bridge] status handler threw:", err);
+      }
+    }
   }
 
   private startPing(): void {
@@ -237,17 +283,8 @@ export class ExtensionBridge {
       return;
     }
 
-    // 2. Per-command deadlines + superseded-generation guard
-    const currentGen = this.bridge.generation?.();
+    // 2. Per-command deadlines
     for (const [id, pending] of this.pending) {
-      if (currentGen !== undefined && pending.generation < currentGen) {
-        this.pending.delete(id);
-        pending.resolve({
-          ok: false,
-          error: { code: "extension_unreachable", message: "Extension socket was superseded." },
-        });
-        continue;
-      }
       if (now >= pending.deadlineAtMs) {
         this.pending.delete(id);
         pending.resolve({
