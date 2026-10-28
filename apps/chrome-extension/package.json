@@ -1,7 +1,7 @@
 {
   "name": "@fn-browser/chrome-extension",
   "license": "MIT",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "fn-browser MV3 Chrome extension: owns chrome.debugger, bridges to native host",
   "type": "module",
