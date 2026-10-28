@@ -49,8 +49,6 @@
       },
       "dependencies": {
         "@fn-browser/browser": "workspace:*",
-        "@fn-browser/log": "workspace:*",
-        "@fn-browser/utils": "workspace:*",
         "hono": "^4.12.18",
       },
       "devDependencies": {
@@ -63,7 +61,6 @@
       "name": "@fn-browser/browser",
       "version": "0.2.0",
       "dependencies": {
-        "@fn-browser/utils": "workspace:*",
         "hono": "^4.12.18",
       },
       "devDependencies": {
@@ -71,33 +68,6 @@
         "tsup": "^8.0.0",
         "typescript": "^5.4.0",
         "vitest": "^3.2.4",
-      },
-    },
-    "packages/log": {
-      "name": "@fn-browser/log",
-      "version": "0.1.0",
-      "dependencies": {
-        "@fn-browser/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@opentelemetry/api": "^1.7.0",
-        "tsup": "^8.0.0",
-        "typescript": "^5.4.0",
-        "vitest": "^3.2.4",
-      },
-      "peerDependencies": {
-        "@opentelemetry/api": "^1.7.0",
-      },
-      "optionalPeers": [
-        "@opentelemetry/api",
-      ],
-    },
-    "packages/utils": {
-      "name": "@fn-browser/utils",
-      "version": "0.1.0",
-      "devDependencies": {
-        "tsup": "^8.0.0",
-        "typescript": "^5.4.0",
       },
     },
   },
@@ -184,11 +154,7 @@
 
     "@fn-browser/chrome-extension": ["@fn-browser/chrome-extension@workspace:apps/chrome-extension"],
 
-    "@fn-browser/log": ["@fn-browser/log@workspace:packages/log"],
-
     "@fn-browser/native-host": ["@fn-browser/native-host@workspace:apps/native-host"],
-
-    "@fn-browser/utils": ["@fn-browser/utils@workspace:packages/utils"],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 
@@ -199,8 +165,6 @@
     "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
-
-    "@opentelemetry/api": ["@opentelemetry/api@1.9.1", "", {}, "sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q=="],
 
     "@parcel/watcher": ["@parcel/watcher@2.5.1", "", { "dependencies": { "detect-libc": "^1.0.3", "is-glob": "^4.0.3", "micromatch": "^4.0.5", "node-addon-api": "^7.0.0" }, "optionalDependencies": { "@parcel/watcher-android-arm64": "2.5.1", "@parcel/watcher-darwin-arm64": "2.5.1", "@parcel/watcher-darwin-x64": "2.5.1", "@parcel/watcher-freebsd-x64": "2.5.1", "@parcel/watcher-linux-arm-glibc": "2.5.1", "@parcel/watcher-linux-arm-musl": "2.5.1", "@parcel/watcher-linux-arm64-glibc": "2.5.1", "@parcel/watcher-linux-arm64-musl": "2.5.1", "@parcel/watcher-linux-x64-glibc": "2.5.1", "@parcel/watcher-linux-x64-musl": "2.5.1", "@parcel/watcher-win32-arm64": "2.5.1", "@parcel/watcher-win32-ia32": "2.5.1", "@parcel/watcher-win32-x64": "2.5.1" } }, "sha512-dfUnCxiN9H4ap84DvD2ubjw+3vUNpstxa0TneY/Paat8a3R4uQZDLSvWjmznAY/DoahqTHl9V46HF/Zs3F29pg=="],
 

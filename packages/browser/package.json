@@ -35,7 +35,6 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@fn-browser/utils": "workspace:*",
     "hono": "^4.12.18"
   },
   "devDependencies": {

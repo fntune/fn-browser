@@ -3,9 +3,6 @@
 import { appendFile, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { createLogger } from "@fn-browser/log";
-
-const log = createLogger({ pkg: "native-host", module: "observability" });
 
 function getRootDir(): string {
   const home = process.env.HOME ?? homedir(); // HOME first — os.homedir() ignores it on macOS
@@ -113,23 +110,17 @@ export class RunLog {
       await appendFile(file, `${JSON.stringify(entry)}\n`, "utf8");
     } catch (err) {
       // Observability must not break tool calls.
-      log.warn("run_log write failed", {
-        runId: this.runId,
-        error: err instanceof Error ? err.message : String(err),
-      });
+      console.error(
+        `[run-log] write failed for ${this.runId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
     // Mirror to stderr without args/result (JSONL is authoritative).
     if (event.phase === "start") {
-      log.info("tool.start", { runId: this.runId, tool: event.tool });
+      console.error(`[run-log] ${this.runId} ${event.tool} start`);
     } else {
-      log.info("tool.end", {
-        runId: this.runId,
-        tool: event.tool,
-        ok: event.ok,
-        durationMs: event.durationMs,
-        ...(event.errorCode ? { errorCode: event.errorCode } : {}),
-      });
+      const status = event.ok ? "ok" : `error${event.errorCode ? ` ${event.errorCode}` : ""}`;
+      console.error(`[run-log] ${this.runId} ${event.tool} ${status} ${event.durationMs}ms`);
     }
   }
 }

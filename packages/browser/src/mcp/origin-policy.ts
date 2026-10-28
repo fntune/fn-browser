@@ -2,7 +2,7 @@
  * SSRF / egress policy for navigation targets (literal hosts/IPs; not DNS-rebinding).
  */
 
-import { classifyHost, type HostClassification } from "@fn-browser/utils/host-classification";
+import { classifyHost, type HostClassification } from "./host.js";
 
 export { classifyHost };
 export type { HostClassification };

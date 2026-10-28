@@ -5,9 +5,9 @@
   "description": "Browser automation MCP for Claude: MV3 Chrome extension + Bun native-messaging host.",
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
-    "build": "bun run --cwd packages/utils build && bun run --cwd packages/log build && bun run --cwd packages/browser build && bun run --cwd apps/chrome-extension build && bun run --cwd apps/native-host build",
-    "test": "bun run --cwd packages/log test && bun run --cwd packages/browser test && bun run --cwd apps/native-host test",
-    "typecheck": "bun run --cwd packages/utils typecheck && bun run --cwd packages/log typecheck && bun run --cwd packages/browser typecheck && bun run --cwd apps/chrome-extension typecheck && bun run --cwd apps/native-host typecheck",
+    "build": "bun run --cwd packages/browser build && bun run --cwd apps/chrome-extension build && bun run --cwd apps/native-host build",
+    "test": "bun run --cwd packages/browser test && bun run --cwd apps/native-host test",
+    "typecheck": "bun run --cwd packages/browser typecheck && bun run --cwd apps/chrome-extension typecheck && bun run --cwd apps/native-host typecheck",
     "lint": "biome lint .",
     "ci": "bun run build && bun run typecheck && bun run lint && bun run test",
     "bundle": "scripts/release/bundle-browser.sh",

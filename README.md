@@ -10,8 +10,6 @@ human-in-the-loop consent prompts for anything destructive.
 | Path | What it is |
 |---|---|
 | `packages/browser` | CDP wrappers (stealth-guarded), MCP server factory, sessions, HITL policy |
-| `packages/log` | Structured logger (`@fn-browser/log`) |
-| `packages/utils` | Shared helpers — `host-classification` for SSRF origin policy |
 | `apps/chrome-extension` | MV3 extension: background SW owns `chrome.debugger`, React side panel |
 | `apps/native-host` | Bun binary Chrome spawns via native messaging; Hono HTTP MCP on `127.0.0.1:7722` |
 | `scripts/release/bundle-browser.sh` | Builds the distributable zip (extension + binaries + installer + SETUP.md) |
@@ -20,7 +18,7 @@ human-in-the-loop consent prompts for anything destructive.
 
 ```bash
 bun install
-bun run build          # utils -> log -> browser -> extension -> host
+bun run build          # browser -> extension -> host
 bun run test
 ./scripts/release/bundle-browser.sh   # optional: produce release/fn-browser-<v>-darwin-<arch>.zip
 ```
