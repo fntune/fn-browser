@@ -134,20 +134,9 @@ describe("capability tiers", () => {
     expect(authorizeTool(p, "adopt_tab").allowed).toBe(false);
   });
 
-  it("keeps rate-limit mutations out of the read tier", () => {
-    // rate_limit_check/consume mutate shared quota state — read must not reach them.
-    expect(authorizeTool(principal("read"), "rate_limit_check").allowed).toBe(false);
-    expect(authorizeTool(principal("read"), "rate_limit_consume").allowed).toBe(false);
-    expect(authorizeTool(principal("act"), "rate_limit_consume").allowed).toBe(true);
-  });
-
-  it("keeps prompt-producing tools out of the read tier but allows pure reads", () => {
-    // require_consent spams prompts; require_tos_acceptance mutates the ToS set.
+  it("keeps prompt-producing tools out of the read tier", () => {
     expect(authorizeTool(principal("read"), "require_consent").allowed).toBe(false);
-    expect(authorizeTool(principal("read"), "require_tos_acceptance").allowed).toBe(false);
     expect(authorizeTool(principal("act"), "require_consent").allowed).toBe(true);
-    // check_activity_window is a pure computation — still allowed for read.
-    expect(authorizeTool(principal("read"), "check_activity_window").allowed).toBe(true);
   });
 
   it("denies unknown tools (fail closed)", () => {

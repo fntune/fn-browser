@@ -30,7 +30,6 @@ describe("createBrowserMcpServer", () => {
     expect(names.has("upload_file")).toBe(true);
     expect(names.has("navigate")).toBe(true);
     expect(names.has("observe")).toBe(true);
-    expect(names.has("rate_limit_check")).toBe(true);
     expect(names.has("require_consent")).toBe(true);
     expect(names.has("start")).toBe(true);
     expect(names.has("list_sessions")).toBe(true);
@@ -236,37 +235,6 @@ describe("createBrowserMcpServer", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error.code).toBe("extension_unreachable");
     expect(called).toBe(false);
-  });
-
-  it("handles rate_limit_check entirely in-host (no bridge call)", async () => {
-    let bridgeCalled = false;
-    const server = createBrowserMcpServer({
-      bridge: stubBridge(async () => {
-        bridgeCalled = true;
-        return { ok: true, result: null };
-      }),
-    });
-
-    const check = await server.callTool("rate_limit_check", {
-      tag: "test:tag",
-      max: 5,
-      window: "minute",
-    });
-    expect(check.ok).toBe(true);
-    if (check.ok) {
-      expect(check.result).toMatchObject({ allowed: true, remaining: 5, count: 0 });
-    }
-
-    const consume = await server.callTool("rate_limit_consume", {
-      tag: "test:tag",
-      max: 5,
-      window: "minute",
-    });
-    expect(consume.ok).toBe(true);
-    if (consume.ok) {
-      expect(consume.result).toMatchObject({ allowed: true, remaining: 4 });
-    }
-    expect(bridgeCalled).toBe(false);
   });
 
   it("routes require_consent through the bridge and returns the user's choice", async () => {

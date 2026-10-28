@@ -128,8 +128,6 @@ export type BrowserError =
   | { code: "element_not_found"; selector: string; message: string }
   | { code: "consent_denied"; message: string }
   | { code: "consent_timeout"; message: string }
-  | { code: "rate_limit_exceeded"; tag: string; resetAt: string; message: string }
-  | { code: "outside_activity_window"; nextWindowAt: string; message: string }
   | { code: "cdp_error"; cdpCode: number; cdpMessage: string; message: string }
   | { code: "detached"; tabId: TabId; reason: string; message: string };
 

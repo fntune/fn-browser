@@ -3,9 +3,8 @@
  *
  * Exposes the full tool surface defined in tool-catalog.ts. Each tool call is
  * routed through an abstract TransportBridge (the native host plugs in the
- * extension bridge; tests plug in a stub). Platform-policy tools (rate_limit,
- * consent, activity window) and session tools (start/end/info/list_sessions)
- * resolve in-host; extension-backed tools round-trip through the bridge.
+ * extension bridge; tests plug in a stub). require_consent and the session
+ * tools (start/end/info/list_sessions) resolve in-host; extension-backed tools round-trip through the bridge.
  */
 
 import { PolicyStore } from "./policy-store.js";
@@ -119,13 +118,7 @@ export interface McpServer {
 
 const SESSION_TOOLS: ReadonlySet<string> = new Set(["start", "end", "info", "list_sessions"]);
 
-const HOST_POLICY_TOOLS: ReadonlySet<string> = new Set([
-  "rate_limit_check",
-  "rate_limit_consume",
-  "require_consent",
-  "require_tos_acceptance",
-  "check_activity_window",
-]);
+const HOST_POLICY_TOOLS: ReadonlySet<string> = new Set(["require_consent"]);
 
 const EXTENSION_BACKED_TOOLS: ReadonlySet<string> = new Set([
   "list_tabs",
@@ -848,36 +841,6 @@ async function handleHostTool(
 ): Promise<ToolResult> {
   try {
     switch (name) {
-      case "rate_limit_check": {
-        const { tag, max, window, scope } = args as {
-          tag: string;
-          max: number;
-          window: string;
-          scope?: "global" | "session";
-        };
-        return {
-          ok: true,
-          result: await policy.rateLimitCheck(tag, max, window, {
-            ...(scope ? { scope } : {}),
-            ...(context?.sessionId ? { sessionId: context.sessionId } : {}),
-          }),
-        };
-      }
-      case "rate_limit_consume": {
-        const { tag, max, window, scope } = args as {
-          tag: string;
-          max: number;
-          window: string;
-          scope?: "global" | "session";
-        };
-        return {
-          ok: true,
-          result: await policy.rateLimitConsume(tag, max, window, {
-            ...(scope ? { scope } : {}),
-            ...(context?.sessionId ? { sessionId: context.sessionId } : {}),
-          }),
-        };
-      }
       case "require_consent": {
         const { title, body, options, destructive } = args as {
           title: string;
@@ -897,23 +860,6 @@ async function handleHostTool(
             signal: context?.signal,
           }),
         };
-      }
-      case "require_tos_acceptance": {
-        const { origin, policy_text } = args as { origin: string; policy_text: string };
-        return {
-          ok: true,
-          result: await policy.requireTosAcceptance({
-            origin,
-            policyText: policy_text,
-            bridge,
-            sessionId: context?.sessionId,
-            signal: context?.signal,
-          }),
-        };
-      }
-      case "check_activity_window": {
-        const { start, end, tz } = args as { start: string; end: string; tz?: string };
-        return { ok: true, result: policy.checkActivityWindow({ start, end, tz }) };
       }
       default:
         return { ok: false, error: { code: "unknown_tool", message: name } };

@@ -21,7 +21,6 @@ import { useDaemonConfig } from "./hooks/use-daemon-config.js";
 import { useConsentQueue } from "./hooks/use-consent-queue.js";
 import { useGlobalPolicy } from "./hooks/use-global-policy.js";
 import { useHostStatus } from "./hooks/use-host-status.js";
-import { useRateLimits } from "./hooks/use-rate-limits.js";
 import { useSessions } from "./hooks/use-sessions.js";
 import { useTheme } from "./hooks/use-theme.js";
 import { useGlobalKeyboard } from "./hooks/use-keyboard.js";
@@ -32,7 +31,6 @@ import { EmptyState } from "./components/empty-state.js";
 import { DaemonConfigForm } from "./components/daemon-config.js";
 import { GlobalPolicyToggle } from "./components/global-policy-toggle.js";
 import { KeyboardHelp } from "./components/keyboard-help.js";
-import { RateLimitsList } from "./components/rate-limits.js";
 import { SessionRow } from "./components/session-row.js";
 import { SuggestionPills } from "./components/suggestion-pills.js";
 import { TrustedSitesList } from "./components/trusted-sites.js";
@@ -75,7 +73,6 @@ function AppInner(): React.JSX.Element {
   const { pending, resolve } = useConsentQueue(port);
   const { sessions, isLoading: sessionsLoading, isError: sessionsError } = useSessions();
   const { setPolicy } = useSessions();
-  const { counters } = useRateLimits();
   const { policy: globalPolicy, setPolicy: setGlobalPolicy } = useGlobalPolicy();
   const { origins: allowlist, add: addOrigin, remove: removeOrigin } =
     useAllowlist(port);
@@ -337,21 +334,6 @@ function AppInner(): React.JSX.Element {
                 count={allowlist.length}
               />
               <TrustedSitesList origins={allowlist} onRemove={removeOrigin} />
-            </section>
-          </>
-        ) : null}
-
-        {/* Rate limits */}
-        {counters.length > 0 ? (
-          <>
-            <Separator />
-            <section>
-              <SectionHeader
-                icon={<span aria-hidden>⟳</span>}
-                label="rate limits"
-                count={counters.length}
-              />
-              <RateLimitsList counters={counters} />
             </section>
           </>
         ) : null}

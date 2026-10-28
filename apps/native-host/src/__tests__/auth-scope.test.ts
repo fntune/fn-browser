@@ -126,7 +126,7 @@ describe("FN_BROWSER_AUTH_SCOPE=mcp", () => {
 			{ FN_BROWSER_AUTH_TOKENS: tokens, FN_BROWSER_AUTH_SCOPE: "mcp" },
 			async () => {
 				const { app } = createDaemonApp({ browsers: browsersOf(stubBridge()) });
-				for (const path of ["/health", "/sessions", "/rate-limits"]) {
+				for (const path of ["/health", "/sessions", "/consents"]) {
 					const res = await app.request(path);
 					expect(res.status, path).toBe(200);
 				}

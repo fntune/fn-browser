@@ -5,13 +5,10 @@ import { createBrowserMcpServer, PolicyStore, SessionRegistry } from "@fn-browse
 import type { TransportBridge, ToolResult } from "@fn-browser/browser/mcp";
 import type { SessionId } from "@fn-browser/browser/cdp";
 import { createSessionsRouter } from "../routes/sessions.js";
-import { createRateLimitsRouter } from "../routes/rate-limits.js";
 import {
   createGlobalPolicyRouter,
   applyGlobalPolicyFromEnv,
 } from "../routes/global-policy.js";
-import { createAuthMiddleware } from "../auth/middleware.js";
-import { parseAuthTokens } from "../auth/tokens.js";
 
 function stubBridge(): TransportBridge {
   return {
@@ -33,7 +30,6 @@ async function buildApp() {
 
   const app = new Hono();
   app.route("/sessions", createSessionsRouter(server));
-  app.route("/rate-limits", createRateLimitsRouter(server));
   app.route("/global-policy", createGlobalPolicyRouter(server));
   return { app, server };
 }
@@ -103,35 +99,6 @@ describe("POST /sessions/:id/policy", () => {
       body: JSON.stringify({ policy: "ask" }),
     });
     expect(res.status).toBe(404);
-  });
-});
-
-describe("GET /rate-limits", () => {
-  it("returns active counters", async () => {
-    const { app, server } = await buildApp();
-    await server.policy.rateLimitConsume("linkedin.com:connects:daily", 20, "daily");
-
-    const res = await app.request("/rate-limits");
-    const body = (await res.json()) as {
-      counters: Array<{ tag: string; count: number; reset_at: string }>;
-    };
-    expect(body.counters).toHaveLength(1);
-    expect(body.counters[0]).toMatchObject({
-      tag: "linkedin.com:connects:daily",
-      count: 1,
-    });
-  });
-
-  it("admin-only: read AND act are forbidden (snapshot leaks cross-session ids)", async () => {
-    const { server } = await buildApp();
-    const app = new Hono();
-    app.use("*", createAuthMiddleware(parseAuthTokens("viewer:tok_read:read,worker:tok_act:act,ops:tok_admin:admin")));
-    app.route("/rate-limits", createRateLimitsRouter(server));
-    const req = (tok: string) =>
-      app.request("/rate-limits", { headers: { Authorization: `Bearer ${tok}` } });
-    expect((await req("tok_read")).status).toBe(403);
-    expect((await req("tok_act")).status).toBe(403); // act no longer allowed
-    expect((await req("tok_admin")).status).toBe(200); // operator
   });
 });
 

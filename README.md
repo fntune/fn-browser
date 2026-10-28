@@ -1,8 +1,8 @@
 # fn-browser
 
 Browser automation MCP for Claude: Claude drives your Chrome through a local
-MV3 extension + Bun native-messaging host. 24 MCP tools (navigate, click,
-screenshot, fill_form, upload_file, sessions, rate limits, …) with
+MV3 extension + Bun native-messaging host. MCP tools for navigate, click,
+screenshot, fill_form, upload_file, evaluate_js, tabs and sessions, with
 human-in-the-loop consent prompts for anything destructive.
 
 ## Layout

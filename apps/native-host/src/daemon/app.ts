@@ -7,7 +7,6 @@ import { PERMISSIVE_ORIGIN_POLICY, REMOTE_ORIGIN_POLICY, type McpServer } from "
 import type { Browsers } from "../browsers.js";
 import { createMcpServer } from "../mcp-server.js";
 import { createSessionsRouter } from "../routes/sessions.js";
-import { createRateLimitsRouter } from "../routes/rate-limits.js";
 import {
   createGlobalPolicyRouter,
   applyGlobalPolicyFromEnv,
@@ -184,8 +183,6 @@ export function createDaemonApp(deps: DaemonAppDeps): DaemonApp {
     }
   });
 
-  mcpServer.sessions.onSessionRemoved = (id) => mcpServer.policy.clearSession(id);
-
   let reaper: ReturnType<typeof setInterval> | undefined;
   if (deps.reapIntervalMs && deps.reapIntervalMs > 0) {
     reaper = setInterval(() => {
@@ -218,8 +215,6 @@ export function createDaemonApp(deps: DaemonAppDeps): DaemonApp {
   app.use("/health", corsForSidePanel);
   app.use("/sessions", corsForSidePanel);
   app.use("/sessions/*", corsForSidePanel);
-  app.use("/rate-limits", corsForSidePanel);
-  app.use("/rate-limits/*", corsForSidePanel);
   app.use("/global-policy/*", corsForSidePanel);
   app.use("/global-policy", corsForSidePanel);
   app.use("/consents/*", corsForSidePanel);
@@ -237,7 +232,6 @@ export function createDaemonApp(deps: DaemonAppDeps): DaemonApp {
   );
   app.route("/mcp/browser", mcpApp);
   app.route("/sessions", createSessionsRouter(mcpServer));
-  app.route("/rate-limits", createRateLimitsRouter(mcpServer));
   app.route(
     "/global-policy",
     createGlobalPolicyRouter(

@@ -85,8 +85,6 @@ export class SessionRegistry {
   private readonly inFlight = new Map<SessionId, number>();
   private colorCursor = 0;
 
-  /** Fired on end() or idle reap; wire to PolicyStore.clearSession. */
-  onSessionRemoved?: (sessionId: SessionId) => void;
 
   constructor(
     private readonly maxSessions: number = DEFAULT_MAX_SESSIONS,
@@ -243,7 +241,6 @@ export class SessionRegistry {
         this.tabToSession.delete(tabId);
       }
       this.sessions.delete(args.sessionId);
-      this.onSessionRemoved?.(args.sessionId);
       return { ok: true, closedTabs: onTabs === "close" ? tabIds.length : 0 };
     });
   }
@@ -398,7 +395,6 @@ export class SessionRegistry {
         }
         this.groupInits.delete(session.id);
         this.sessions.delete(session.id);
-        this.onSessionRemoved?.(session.id);
         pruned.push(session.id);
       }
     }

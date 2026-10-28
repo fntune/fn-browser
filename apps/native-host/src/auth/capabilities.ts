@@ -9,8 +9,6 @@ export type Capability =
   | "page.act"
   | "files.upload"
   | "js.evaluate"
-  | "meta"
-  | "ratelimit"
   | "policy.write"
   | "consent.approve";
 
@@ -22,15 +20,12 @@ const READ_CAPS: readonly Capability[] = [
   "sessions.manage",
   "tabs.read",
   "page.read",
-  "meta",
 ];
 
 const ACT_CAPS: readonly Capability[] = [
   ...READ_CAPS,
   "tabs.create",
   "page.act",
-  // Mutates shared quota state — read tier must not reach these.
-  "ratelimit",
 ];
 
 const ADMIN_CAPS: readonly Capability[] = [
@@ -92,13 +87,8 @@ const TOOL_CAPABILITY: Record<string, Capability> = {
   // privileged
   upload_file: "files.upload",
   evaluate_js: "js.evaluate",
-  // rate limits — act+
-  rate_limit_check: "ratelimit",
-  rate_limit_consume: "ratelimit",
-  // mutates shared state — not read tier
+  // prompts the user — not read tier
   require_consent: "page.act",
-  require_tos_acceptance: "page.act",
-  check_activity_window: "meta",
 };
 
 export function requiredCapabilityForTool(name: string): Capability | undefined {

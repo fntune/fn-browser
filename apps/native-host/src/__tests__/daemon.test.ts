@@ -67,11 +67,11 @@ describe("createDaemonApp", () => {
         jsonrpc: "2.0",
         id: 1,
         method: "tools/call",
-        params: { name: "rate_limit_check", arguments: { tag: "x", max: 2, window: "minute" } },
+        params: { name: "list_sessions", arguments: {} },
       }),
     });
     const body = (await mcp.json()) as { result: { content: Array<{ text: string }> } };
-    expect(JSON.parse(body.result.content[0]!.text)).toMatchObject({ allowed: true });
+    expect(JSON.parse(body.result.content[0]!.text)).toMatchObject({ sessions: [] });
 
     const consents = (await (await app.request("/consents")).json()) as { consents: unknown[] };
     expect(consents.consents).toEqual([]);
@@ -139,8 +139,8 @@ describe("createDaemonApp", () => {
     });
     expect(panel.headers.get("Access-Control-Allow-Origin")).toBe(pinned);
 
-    // Exact /sessions and /rate-limits roots must also be CORS-covered.
-    for (const path of ["/sessions", "/rate-limits"]) {
+    // Exact /sessions and /consents roots must also be CORS-covered.
+    for (const path of ["/sessions", "/consents"]) {
       const pre = await app.request(path, { method: "OPTIONS", headers: { Origin: pinned } });
       expect(pre.headers.get("Access-Control-Allow-Origin"), path).toBe(pinned);
     }

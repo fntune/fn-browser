@@ -88,7 +88,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
       result: { tools: Array<{ name: string; inputSchema: object }> };
     };
     const names = body.result.tools.map((t) => t.name);
-    expect(names).toEqual(expect.arrayContaining(["upload_file", "navigate", "observe", "rate_limit_check", "start"]));
+    expect(names).toEqual(expect.arrayContaining(["upload_file", "navigate", "observe", "require_consent", "start"]));
     expect(body.result.tools.every((t) => typeof t.inputSchema === "object")).toBe(true);
   });
 
@@ -156,7 +156,7 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
     });
   });
 
-  it("rate_limit_check resolves entirely in-host without touching the bridge", async () => {
+  it("list_sessions resolves entirely in-host without touching the bridge", async () => {
     let bridgeCalls = 0;
     const bridge = makeBridge({
       sendCommand: async (): Promise<CommandResult | CommandFailure> => {
@@ -174,16 +174,13 @@ describe("createMcpServer (JSON-RPC HTTP)", () => {
         id: 5,
         method: "tools/call",
         params: {
-          name: "rate_limit_check",
-          arguments: { tag: "x", max: 3, window: "minute" },
+          name: "list_sessions",
+          arguments: {},
         },
       }),
     });
     const body = (await res.json()) as { result: { content: Array<{ text: string }> } };
-    expect(JSON.parse(body.result.content[0]!.text)).toMatchObject({
-      allowed: true,
-      remaining: 3,
-    });
+    expect(JSON.parse(body.result.content[0]!.text)).toMatchObject({ sessions: [] });
     expect(bridgeCalls).toBe(0);
   });
 

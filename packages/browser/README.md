@@ -12,10 +12,7 @@ Architecture: a MV3 Chrome extension owns the CDP session (through `chrome.debug
 | `@fn-browser/browser/cdp` | `BrowserController`, typed `chrome.debugger` wrappers, shared types |
 | `@fn-browser/browser/mcp` | `createBrowserMcpServer()` factory + `McpToolPlugin` extension point |
 
-This package has **no `@fn-browser/workflows` dependency**. Durable flow execution
-(including a `run_flow` MCP tool) is out of scope for this distribution; the
-MCP server accepts optional plugins via `createBrowserMcpServer({ plugins })`
-if you wire one in yourself.
+The MCP server accepts extra tools via `createBrowserMcpServer({ plugins })`.
 
 ## Apps
 

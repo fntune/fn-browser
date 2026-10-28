@@ -289,41 +289,7 @@ export const TOOLS: readonly ToolSchema[] = [
     ),
   },
 
-  // Platform-policy utilities
-  {
-    name: "rate_limit_check",
-    description:
-      "Advisory peek at a rate-limit counter by tag. Returns {allowed, remaining, reset_at, count}. Does not increment — to gate a write, use rate_limit_consume.",
-    permission: "meta",
-    inputSchema: schemaObject(
-      {
-        // scope:"session" keys the counter by session, so the caller needs a way
-        // to pass it when X-Session-Id isn't available (additionalProperties:false).
-        sessionId: sessionIdArg,
-        tag: string,
-        max: number,
-        window: { type: "string", enum: ["minute", "hour", "daily"] },
-        scope: { type: "string", enum: ["global", "session"] },
-      },
-      ["tag", "max", "window"],
-    ),
-  },
-  {
-    name: "rate_limit_consume",
-    description:
-      "Atomic check-and-increment of a rate-limit counter. Returns {allowed, remaining, reset_at}; increments only when allowed. scope defaults to global (shared across sessions).",
-    permission: "meta",
-    inputSchema: schemaObject(
-      {
-        sessionId: sessionIdArg,
-        tag: string,
-        max: number,
-        window: { type: "string", enum: ["minute", "hour", "daily"] },
-        scope: { type: "string", enum: ["global", "session"] },
-      },
-      ["tag", "max", "window"],
-    ),
-  },
+  // Human-in-the-loop
   {
     name: "require_consent",
     description:
@@ -337,30 +303,6 @@ export const TOOLS: readonly ToolSchema[] = [
         options: { type: "array", items: string },
       },
       ["title", "body"],
-    ),
-  },
-  {
-    name: "require_tos_acceptance",
-    description:
-      "One-time-per-session-per-origin ToS consent. Returns immediately if already accepted this session.",
-    permission: "meta",
-    inputSchema: schemaObject(
-      { sessionId: sessionIdArg, origin: string, policy_text: string },
-      ["origin", "policy_text"],
-    ),
-  },
-  {
-    name: "check_activity_window",
-    description:
-      "Return {in_window, next_window_at} for the given window spec. Caller supplies start/end/tz.",
-    permission: "meta",
-    inputSchema: schemaObject(
-      {
-        start: string,
-        end: string,
-        tz: string,
-      },
-      ["start", "end"],
     ),
   },
 
@@ -380,8 +322,6 @@ const REPLAY_SAFE_TOOL_NAMES: ReadonlySet<string> = new Set([
   "observe",
   "read_console",
   "read_network",
-  "rate_limit_check",
-  "check_activity_window",
 ]);
 
 /** Whether retrying a tool call can duplicate no state-changing action. */

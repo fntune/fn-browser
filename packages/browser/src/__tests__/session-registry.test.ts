@@ -234,22 +234,6 @@ describe("SessionRegistry teardown + reconcile safety", () => {
     expect(r.pruneIdle(new Date(Date.now() + 60 * 60 * 1000))).toContain(s.id);
   });
 
-  it("fires onSessionRemoved on end() and on pruneIdle (policy GC hook)", async () => {
-    const r = new SessionRegistry();
-    const removed: string[] = [];
-    r.onSessionRemoved = (id) => removed.push(id);
-
-    const s1 = r.start({ name: "a" });
-    await r.end({ sessionId: s1.id, bridge: stubBridge() });
-    expect(removed).toContain(s1.id);
-
-    const s2 = r.start({ name: "b" });
-    // Prune with a far-future clock so s2 is past the idle cutoff.
-    const pruned = r.pruneIdle(new Date(Date.now() + 60 * 60 * 1000));
-    expect(pruned).toContain(s2.id);
-    expect(removed).toContain(s2.id);
-  });
-
   it("isTabSessionClosing tracks a tab whose session is tearing down", async () => {
     const r = new SessionRegistry();
     const s = r.start({ name: "a" });

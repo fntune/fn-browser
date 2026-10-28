@@ -1,10 +1,9 @@
 /**
  * Host commands → chrome.debugger CDP ops + chrome.tabs ops + consent queue.
  *
- * Covers the full fn-browser tool surface. Policy primitives (rate limits,
- * activity window) live in the host, not here — they never reach the
- * extension. We DO handle __internal_request_consent here because consent
- * surfaces in the extension side panel.
+ * Covers the extension-backed tool surface; session tools resolve in the host.
+ * We DO handle __internal_request_consent here because consent surfaces in the
+ * extension side panel.
  */
 
 import {
