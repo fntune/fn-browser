@@ -8,9 +8,9 @@ on:
 
 jobs:
   ci:
-    # Linux. Build, typecheck, lint and test need no Darwin toolchain, and a macOS runner bills
-    # at ten times the Linux rate. The release workflow still uses macos-14, where it must.
-    runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '["ubuntu-latest"]') }}
+    # GitHub-hosted only: this is a public repo, so PR code must never reach a self-hosted runner.
+    # Linux suffices here; the release workflow uses macos-14, where it must.
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
